@@ -17,7 +17,7 @@ def read_data_csv(file_name, debug=False):
     data = {}
 
 
-    with open('data.csv') as csvfile:
+    with open(file_name) as csvfile:
         reader = csv.reader(csvfile, delimiter=';')
         #skip the first line 
         next(reader)
