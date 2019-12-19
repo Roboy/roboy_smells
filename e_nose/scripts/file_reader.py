@@ -1,6 +1,9 @@
+#file_reader.py
 import numpy as np
 import csv
 from datetime import datetime, date, time, timezone
+import os
+import glob
 
 def convert_to_datetime(possible_date):
     return datetime.strptime(possible_date, "%d.%m.%Y - %H:%M:%S")
@@ -27,7 +30,7 @@ def read_data_csv(file_name, debug=False):
         failures = [int(c) for c in next(reader)[0].split(':')[1]]
         #get the functionalisation of the different channels
         functionalisations = next(reader)
-        functionalisations[0] = int(functionalisations[0].split(':')[1])
+        functionalisations[0] = functionalisations[0].split(':')[1]
         #get already calculated base-levels
         s = next(reader)
         while s[0].startswith('#baseLevel'):
@@ -51,7 +54,7 @@ def read_data_csv(file_name, debug=False):
         #parsing data
         for row in reader:
             row_data = {}
-            row_data['channels'] = row[1:-2]
+            row_data['channels'] = np.array(row[1:-2]).astype(np.float) 
             row_data['label'] = row[-2]
             row_data['pred_label'] = row[-1]
             data[convert_to_datetime(row[0])] = row_data
@@ -59,3 +62,11 @@ def read_data_csv(file_name, debug=False):
         if debug:
             print(data)
     return sensorId, failures, functionalisations, base_levels, classes, data
+
+def read_all_files_in_folder(folder_name, extension="csv", debug=False):
+    all_data = {}
+    for file in glob.glob(os.path.join(folder_name,'*.{}'.format(extension))):
+        sensorId, failures, functionalisations, base_levels, classes, data = read_data_csv(file,debug)
+        all_data[file] = data
+        
+    return sensorId, failures, functionalisations, base_levels, classes, all_data
