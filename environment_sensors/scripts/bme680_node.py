@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # license removed for brevity
 import rospy
-from std_msgs.msg import String
+from std_msgs.msg import String, Float32 
 import time
 import board
 import sys
@@ -12,28 +12,29 @@ import adafruit_bme680 as adabme
 bme680 = None
 
 def bme680_node():
-   pub_temp = rospy.Publisher('env_sensor/current_temp', String, queue_size=10)
-   pub_gas = rospy.Publisher('env_sensor/current_gas', String, queue_size=10)
-   pub_humidity = rospy.Publisher('env_sensor/current_humidity', String, queue_size=10)
+   pub_temp = rospy.Publisher('env_sensor/current_temp', Float32, queue_size=10)
+   pub_gas = rospy.Publisher('env_sensor/current_gas', Float32, queue_size=10)
+   pub_humidity = rospy.Publisher('env_sensor/current_humidity', Float32, queue_size=10)
 
-   pub_pressure = rospy.Publisher('env_sensor/current_pressure', String, queue_size=10)
+   pub_pressure = rospy.Publisher('env_sensor/current_pressure', Float32, queue_size=10)
 
-   pub_altitude = rospy.Publisher('env_sensor/current_altitude', String, queue_size=10)
+   pub_altitude = rospy.Publisher('env_sensor/current_altitude', Float32, queue_size=10)
    rospy.init_node('bme680', anonymous=True)
    rate = rospy.Rate(1) # 10hz
    while not rospy.is_shutdown():
       current_temp, current_gas, current_humidity, current_pressure, current_altitude = detect()
+      '''
       temp_str = ("Current temp in deg C is {0:.2f}").format(current_temp)
       gas_str = ("Current gas resistance in Ohm is {0:.2f}").format(current_gas)
       humid_str = ("Current humidity in % is {0:.2f}").format(current_humidity)
       pressure_str = ("Current air pressure in hPa is {0:.2f}").format(current_pressure)
       altitude_str = ("Current altitude in m is {0:.2f}").format(current_altitude)
-      pub_temp.publish(temp_str)
-      pub_gas.publish(gas_str)
-      pub_humidity.publish(humid_str)
-      pub_pressure.publish(pressure_str)
-      pub_altitude.publish(altitude_str)
-      #print(sys.version)
+      '''
+      pub_temp.publish(current_temp)
+      pub_gas.publish(current_gas)
+      pub_humidity.publish(current_humidity)
+      pub_pressure.publish(current_pressure)
+      pub_altitude.publish(current_altitude)
       rate.sleep()
 
 
