@@ -24,8 +24,8 @@ def test_channels_2(channels):
 p.start(C[0]) # initialise
 try:
     while True:
-        test_channels(C, 5)
-        #test_channels_2(C)
+        #test_channels(C, 5)
+        test_channels_2(C)
          
 except KeyboardInterrupt:
     p.stop()
