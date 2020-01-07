@@ -41,8 +41,9 @@ def pretty_draw_meas(measurements, functionalisations, failures, show_all_channe
 
             for i in range(len(functionalisations)):
                 barlist[i].set_color(colors[int(functionalisations[i])])
-                if failures[i]:
-                    barlist[i].set_edgecolor('xkcd:red')
+                
+                #if failures[i]:
+                #    barlist[i].set_edgecolor('xkcd:red')
 
             plt.title("All Channels: {} at {}".format(measurement.label, measurement.ts))
 

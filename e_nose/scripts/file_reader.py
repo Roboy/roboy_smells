@@ -1,72 +1,51 @@
 #file_reader.py
 import numpy as np
 import csv
-from datetime import datetime, date, time, timezone
+from datetime import datetime
 import os
 import glob
-
+import time
 def convert_to_datetime(possible_date):
-    return datetime.strptime(possible_date, "%d.%m.%Y - %H:%M:%S")
+    #Fri Jan  3 12:19:00 2020
+    return datetime.strptime(possible_date, "%a %b %d %H:%M:%S %Y")
 
 def read_data_csv(file_name, debug=False):
-    sensorId = 0
-    functionalisations = []
-    failures = []
-    #dict with timestamp as key and channels as values
-    base_levels = {}
-    classes = []
+    
+    functionalisations = [2,2,2,2,2,0,0,0,0,0,0,3,3,3,3,3,3,3,3,3,3,0,0,0,0,0,0,4,4,4,4,4,4,4,4,4,4,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,2,2,2,2,2]
 
-    #stored in the form of timestamp as key, as value you have another dictionary with 'channels', 'label', 'pred_label'
+    #stored in the form of timestamp as key, as value you have another dictionary with 'channels', 
+    #'temperature, gas, humidity, pressure, altitude, label', 
     data = {}
-
+    
+  
 
     with open(file_name) as csvfile:
-        reader = csv.reader(csvfile, delimiter=';')
-        #skip the first line 
-        next(reader)
-        #get sensor ID, dont know if that's every useful but hey :D
-        sensorId = [int(s) for s in next(reader)[0].split(':') if s.isdigit()][0]
-        #get non-working channels
-        failures = [int(c) for c in next(reader)[0].split(':')[1]]
-        #get the functionalisation of the different channels
-        functionalisations = next(reader)
-        functionalisations[0] = functionalisations[0].split(':')[1]
-        #get already calculated base-levels
-        s = next(reader)
-        while s[0].startswith('#baseLevel'):
-            base_levels[convert_to_datetime(s[0][11:])] = s[1:]
-            s = next(reader)
-
-        #get classes
-        classes = s
-        classes[0] = classes[0].split(':')[1]
+        reader = csv.reader(csvfile, delimiter=',')
 
         #skip header
         next(reader)
-
-        if debug:
-            print(sensorId)
-            print(failures)
-            print(functionalisations)
-            print(base_levels)
-            print(classes)
-
+        i = 0
         #parsing data
         for row in reader:
             row_data = {}
-            row_data['channels'] = np.array(row[1:-2]).astype(np.float) 
-            row_data['label'] = row[-2]
-            row_data['pred_label'] = row[-1]
-            data[convert_to_datetime(row[0])] = row_data
 
-        if debug:
-            print(data)
-    return sensorId, failures, functionalisations, base_levels, classes, data
+            row_data['channels'] = np.array(row[1:-6]).astype(np.float) 
+            row_data['temperature'] = row[-6]
+            row_data['gas'] = row[-5]
+            row_data['humidity']  = row[-4]
+            row_data['pressure'] = row[-3]
+            row_data['altitude'] = row[-2]
+            row_data['label'] = row[-1]
+            data[convert_to_datetime(time.ctime(float(row[0])))] = row_data
+
+     
+    #sorted(data, key=lambda x: datetime.strptime(x[1], '%a %b %d %Y'))
+    return functionalisations ,data
 
 def read_all_files_in_folder(folder_name, extension="csv", debug=False):
     all_data = {}
     for file in glob.glob(os.path.join(folder_name,'*.{}'.format(extension))):
-        sensorId, failures, functionalisations, base_levels, classes, data = read_data_csv(file,debug)
+        functionalisations ,data = read_data_csv(file,debug)
         all_data[file] = data
         
-    return sensorId, failures, functionalisations, base_levels, classes, all_data
+    return functionalisations ,all_data
