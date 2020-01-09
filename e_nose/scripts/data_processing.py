@@ -15,9 +15,8 @@ def standardize_measurements_2(measurements, num_channels=64, debug=False):
 
         if last_meas is None or last_meas != measurement.label:
             last_meas = measurement.label
-            print(last_meas)
-        
-        if measurement.label == 'null':
+
+        if measurement.label == 'ref':
             last_null_meas = measurement
         else:
             if last_null_meas is None:
@@ -65,7 +64,7 @@ def standardize_measurements(data, num_channels=64, use_last=5, debug=False):
 
     return data
 
-def get_labeled_measurements(data, debug=False):
+def get_labeled_measurements(data, correct_channels, functionalisations, debug=False):
     current_label = ''
     current_measurement = None
     measurements = []
@@ -87,13 +86,13 @@ def get_labeled_measurements(data, debug=False):
             if current_label != '':
                 if debug:
                     print("new measurement; cl:", current_label," - rdl:", row_data['label'])
-                meas = Measurement(current_measurement, current_label, time_stamp)
+                meas = Measurement(current_measurement, current_label, time_stamp, correct_channels, functionalisations)
                 measurements.append(meas)
                 
             current_label = row_data['label']
             time_stamp = ts
-            meas_data = {}
-            
+            current_measurement = None
+
         if current_label != '' and current_label == row_data['label']:
             if current_measurement is None:
                 current_measurement = row_data['channels']
@@ -101,7 +100,7 @@ def get_labeled_measurements(data, debug=False):
                 current_measurement = np.vstack((current_measurement, row_data['channels']))    
          
     if current_label is not '':
-        meas = Measurement(current_measurement, current_label, time_stamp)
+        meas = Measurement(current_measurement, current_label, time_stamp, correct_channels, functionalisations)
         measurements.append(meas)
         
     return measurements
@@ -111,8 +110,6 @@ def get_measurement_peak_average(data, num_samples=10):
     max_index = np.argmax(np.abs(data), axis=0)
     # get adjecent samples
     all_peak_data = []
-    print("data.len", len(data))
-    print("data.shape", data.shape)
 
     for i, max_i in enumerate(max_index):
         add_right = max_i + int(num_samples/2)+1
@@ -125,12 +122,9 @@ def get_measurement_peak_average(data, num_samples=10):
             add_left = 0
 
         peak_data = np.mean(np.array(data[add_left:add_right,i]))
-        print(peak_data.shape)
-        print("i: ",i,"; max_i:",max_i, "with data:",data[:,i])
-        print("len data:",len(data[:,i]))
         all_peak_data.append(peak_data)
 
-    return all_peak_data
+    return np.array(all_peak_data)
 
 
 def group_meas_data_by_functionalisation(data, functionalisations):
