@@ -33,6 +33,18 @@ class CSVWriter:
         eNoseCorrected = str(eNoseSample).translate({ord('['): '', ord(']'): '', ord('\''): ''})
         bmeCorrected = str(bmeSample).translate({ord('['): '', ord(']'): '', ord('\''): ''})
         self.filewriter.writerow([time,eNoseCorrected,bmeCorrected,label])
+
+    @staticmethod
+    def get_filename(labels, num_loops, time_loop, ref_time):
+        time_sec = time.time()
+        time_now = time.gmtime(time_sec)
+        filename = 'data_'
+        for i in range(1, len(labels)):
+            filename = filename + labels[i] + '_' 
+        time_string = str(time_now[0]) + '-' + str(time_now[1]) + '-' + str(time_now[2]) + '_' + str(time_now[3]) + ':' + str(time_now[4])
+        filename = filename + str(num_loops) + '_loops_for_' + str(time_loop) + '_min_referenceTime_'+ref_time+'_min_' + time_string + '.csv'
+        print('filename: ', filename)
+        return filename
         
     def __del__(self):
         print('Closing csv')
@@ -51,16 +63,6 @@ class ServoConnecor:
        
         self.p = GPIO.PWM(servoPIN, 50)
         self.Channel = get_channels()
-        '''
-        self.Channel = [3.8,   #channel 1 
-             4.8,   #channel 2
-             5.8,   #channel 3
-             6.75,  #channel 4
-             7.8,   #channel 5
-             8.8,   #channel 6
-             10.    #channel 7
-            ]
-        '''
         self.p.start(self.Channel[0])
         
     def setSample(self,channel):
@@ -126,12 +128,8 @@ class eNoseConnector:
             pass
         
     def detect(self):
-        
         try:
-            #print("detect")
-            #print(self.ser.is_open)
             line = self.ser.readline()
-            #print(line)
             #line looks like: count=___,var1=____._,var2=____._,....
             match = re.match(b'^count=([0-9]+),(var.+)$', line)
             if match is not None:
@@ -171,17 +169,21 @@ class eNoseConnector:
 
 class TestEquimentRunner:
     #labels[0-7] = labels of 0-7 samples, numLoops = number of iterations to be done, timeLoop = timelength of a single sample in seconds
-    def __init__(self,labels,numLoops,timeLoop,filename):
+    def __init__(self,labels,numLoops,timeLoopSample,timeLoopRef,filename=null):
        
         #initialize eNose
         eNose = eNoseConnector()
         #initialize bme680
         bme = BMEConnector()
         #initialize csv file
+        if(filename == null):
+            filename = CSVWriter.get_filename(labels, num_loops, time_loop_min,timeLoopRef)
         sampleWriter = CSVWriter(filename)
         #initialize servo
         servo = ServoConnecor()
         
+        t_started=time.gmtime(time.time())
+        print('starting measurement at: ',t_started)
         #start detection
         loopsDone = 0
         while(loopsDone<numLoops):
@@ -192,7 +194,11 @@ class TestEquimentRunner:
                 if(labels[currentPos]):
                     #goto position i, start fan,start with smelling for time 
                     servo.setSample(currentPos)
-                    t_end = time.time() + timeLoop
+                    t_end = time.time(); 
+                    if(currentPos==0):
+                        t_end+=timeLoopRef
+                    else:
+                        t_end+=timeLoopRef
                     while(time.time() < t_end):
                         eNoseSample = eNose.detect()
                         bmeSample = bme.detect()
@@ -211,37 +217,25 @@ class TestEquimentRunner:
             loopsDone +=1
         
         servo.setSample(0)
-        t_end = time.time() + timeLoop
+        t_end = time.time() + timeLoopRef
         while(time.time() < t_end):
             eNoseSample = eNose.detect()
             bmeSample = bme.detect()
             sampleWriter.writeSample(time.time(),eNoseSample,bmeSample,labels[0])
-            time.sleep(0.2)
+            time.sleep(0.5)
         time_now = time.gmtime(time.time())
         time_str = str(time_now[3]) + ':' + str(time_now[4])
         feedback = time_str + '  current sample '+labels[0]+' measured'
         print(feedback)
 
+        t_timeNeeded = time.time()-t_started    
+        print('Finished measurement at: ',time.time(),' needed time: ',t_timeNeeded)
 
-def get_filename(labels, num_loops, time_loop):
-    time_sec = time.time()
-    time_now = time.gmtime(time_sec)
-    #print(time_now)
-    filename = 'data_'
-    for i in range(1, len(labels)):
-        filename = filename + labels[i] + '_' 
-    #print(filename)
-    #print(time_now[0])
-    time_string = str(time_now[0]) + '-' + str(time_now[1]) + '-' + str(time_now[2]) + '_' + str(time_now[3]) + ':' + str(time_now[4])
-    filename = filename + str(num_loops) + '_loops_for_' + str(time_loop) + '_min_' + time_string + '.csv'
-    print('filename: ', filename)
-    return filename
 
-labels = ['null','wodka','orange_juice','red_wine','lemon_juice','coffee','garlic']
+labels = ['ref','wodka','orange_juice','red_wine','lemon_juice','coffee','garlic']
 num_loops = 10
 time_loop_min = 10. # in minutes
 time_loop = 60. * time_loop_min
-filename = get_filename(labels, num_loops, time_loop_min)
-TestEquimentRunner(labels, num_loops, time_loop, filename)
-#enose = eNoseConnector()
-#enose.detect()
+time_ref_min = 30. #in minutes
+time_ref = 30. * 60
+TestEquimentRunner(labels, num_loops, time_loop,time_ref)
