@@ -1,6 +1,7 @@
 import time
 import sys
 import csv
+import threading
 
 #load bme
 import board
@@ -41,8 +42,8 @@ class CSVWriter:
         filename = 'data_'
         for i in range(1, len(labels)):
             filename = filename + labels[i] + '_' 
-        time_string = str(time_now[0]) + '-' + str(time_now[1]) + '-' + str(time_now[2]) + '_' + str(time_now[3]) + ':' + str(time_now[4])
-        filename = filename + str(num_loops) + '_loops_for_' + str(time_loop) + '_min_referenceTime_'+ref_time+'_min_' + time_string + '.csv'
+        time_string = str(time_now[0]) + '-' + str(time_now[1]) + '-' + str(time_now[2]) + '_' + str(time_now[3]) + '_' + str(time_now[4])
+        filename = filename + str(num_loops) + '_loops_for_' + str(time_loop/60) + '_min_referenceTime_'+str(ref_time/60)+'_min_' + time_string + '.csv'
         print('filename: ', filename)
         return filename
         
@@ -64,10 +65,10 @@ class ServoConnecor:
         self.p = GPIO.PWM(servoPIN, 50)
         self.Channel = get_channels()
         self.p.start(self.Channel[0])
-        
+      
     def setSample(self,channel):
         self.p.ChangeDutyCycle(self.Channel[channel])
-        
+      
     def __del__(self):
         self.p.stop()
         GPIO.cleanup()
@@ -169,15 +170,15 @@ class eNoseConnector:
 
 class TestEquimentRunner:
     #labels[0-7] = labels of 0-7 samples, numLoops = number of iterations to be done, timeLoop = timelength of a single sample in seconds
-    def __init__(self,labels,numLoops,timeLoopSample,timeLoopRef,filename=null):
+    def __init__(self,labels,numLoops,timeLoopSample,timeLoopRef,filename=None):
        
         #initialize eNose
         eNose = eNoseConnector()
         #initialize bme680
         bme = BMEConnector()
         #initialize csv file
-        if(filename == null):
-            filename = CSVWriter.get_filename(labels, num_loops, time_loop_min,timeLoopRef)
+        if(filename == None):
+            filename = CSVWriter.get_filename(labels, num_loops, timeLoopSample,timeLoopRef)
         sampleWriter = CSVWriter(filename)
         #initialize servo
         servo = ServoConnecor()
@@ -198,7 +199,7 @@ class TestEquimentRunner:
                     if(currentPos==0):
                         t_end+=timeLoopRef
                     else:
-                        t_end+=timeLoopRef
+                        t_end+=timeLoopSample
                     while(time.time() < t_end):
                         eNoseSample = eNose.detect()
                         bmeSample = bme.detect()
@@ -232,10 +233,12 @@ class TestEquimentRunner:
         print('Finished measurement at: ',time.time(),' needed time: ',t_timeNeeded)
 
 
-labels = ['ref','wodka','orange_juice','red_wine','lemon_juice','coffee','garlic']
-num_loops = 10
-time_loop_min = 10. # in minutes
+labels = ['ref','walnut','onion','fresh_noodle','tillsitter_cheese','pepper','red_cabbage']
+num_loops = 1
+time_loop_min = 0.1 # in minutes
 time_loop = 60. * time_loop_min
-time_ref_min = 30. #in minutes
-time_ref = 30. * 60
+time_ref_min = 0.5 #in minutes
+time_ref = time_ref_min * 60
+expected_time =  num_loops*(6*(time_loop_min+time_ref_min))+time_ref_min
+print('expected time: ',str(expected_time/60),' hours stoppes at: ', time.strftime('%H:%M',time.gmtime(expected_time)))
 TestEquimentRunner(labels, num_loops, time_loop,time_ref)
