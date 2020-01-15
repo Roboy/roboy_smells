@@ -5,9 +5,11 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import pandas as pd
 
+
 def pretty_print(data):
     for ts in data:
         print(ts,":",data[ts]['channels'],";label:",data[ts]['label'])
+
 
 def pretty_print_meas(measurements, p):
     for ts in measurements:
@@ -74,50 +76,6 @@ def draw_meas_peak(measurements, show_all_channels=False):
             plt.title("All Channels: {} at {}".format(measurement.label, measurement.ts))
 
         plt.show()
-            
-def pretty_draw_direct_comp(measurements, functionalisations, show_all_channels=False):
-    measurements_grouped_by_label = {}
-    colors = ['xkcd:green','xkcd:blue','xkcd:brown','xkcd:yellow','xkcd:black']
-
-    groups = np.unique(functionalisations)
-    y_pos = np.arange(len(groups))
-
-    sorted_measurements = sorted(measurements, key=lambda m: m.label)
-
-    last_label = ''
-    fig, ax = plt.subplots()
-    count = 0
-
-    label_counts = {}
-    for measurement in sorted_measurements:
-        if measurement.label in label_counts:
-            label_counts[measurement.label] = label_counts[measurement.label] + 1
-        else:
-            label_counts[measurement.label] = 1
-
-    for measurement in sorted_measurements:
-        if last_label != measurement.label and last_label != '':
-            ax.set_ylabel('R/R0')
-            ax.set_title(last_label)
-            ax.set_xticks([0,1,2,3,4])
-            plt.show()
-
-            fig, ax = plt.subplots()
-            count = 0
-
-        width = 1/label_counts[measurement.label]
-        bar = ax.bar(y_pos + width*count, measurement.get_total_average_by_group(),
-                     width, align='center', color=colors)
-
-        for i in range(len(bar)):
-            bar[i].set_edgecolor('xkcd:white')
-        count += 1
-        last_label = measurement.label
-
-    ax.set_ylabel('R/R0')
-    ax.set_title(last_label)
-    ax.set_xticks([0, 1, 2, 3, 4])
-    plt.show()
 
 
 def pretty_draw_direct_comp(measurements, functionalisations, show_all_channels=False):
@@ -163,6 +121,52 @@ def pretty_draw_direct_comp(measurements, functionalisations, show_all_channels=
     ax.set_title(last_label)
     ax.set_xticks([0, 1, 2, 3, 4])
     plt.show()
+
+
+def pretty_draw_direct_comp(measurements, functionalisations, show_all_channels=False):
+    measurements_grouped_by_label = {}
+    colors = ['xkcd:green','xkcd:blue','xkcd:brown','xkcd:yellow','xkcd:black']
+
+    groups = np.unique(functionalisations)
+    y_pos = np.arange(len(groups))
+
+    sorted_measurements = sorted(measurements, key=lambda m: m.label)
+
+    last_label = ''
+    fig, ax = plt.subplots()
+    count = 0
+
+    label_counts = {}
+    for measurement in sorted_measurements:
+        if measurement.label in label_counts:
+            label_counts[measurement.label] = label_counts[measurement.label] + 1
+        else:
+            label_counts[measurement.label] = 1
+
+    for measurement in sorted_measurements:
+        if last_label != measurement.label and last_label != '':
+            ax.set_ylabel('R/R0')
+            ax.set_title(last_label)
+            ax.set_xticks([0,1,2,3,4])
+            plt.show()
+
+            fig, ax = plt.subplots()
+            count = 0
+
+        width = 1/label_counts[measurement.label]
+        bar = ax.bar(y_pos + width*count, measurement.get_total_average_by_group(),
+                     width, align='center', color=colors)
+
+        for i in range(len(bar)):
+            bar[i].set_edgecolor('xkcd:white')
+        count += 1
+        last_label = measurement.label
+
+    ax.set_ylabel('R/R0')
+    ax.set_title(last_label)
+    ax.set_xticks([0, 1, 2, 3, 4])
+    plt.show()
+
 
 def pretty_draw_all(measurements, functionalisations, failures, show_all_channels=False):
     measurements_grouped_by_label = {}
@@ -202,6 +206,7 @@ def pretty_draw_all(measurements, functionalisations, failures, show_all_channel
         ax.set_xticks([0, 1, 2, 3, 4])
         plt.show()
 
+
 def draw_meas_channel_over_time(measurement, functionalisations,standardize=True, draw_ref=True):
     colors = ['xkcd:green','xkcd:blue','xkcd:brown','xkcd:yellow','xkcd:black']
 
@@ -213,6 +218,22 @@ def draw_meas_channel_over_time(measurement, functionalisations,standardize=True
         ax.plot(range(len(data)), data[:,i], color=colors[functionalisations[i]])
 
     plt.show()
+
+
+def draw_meas_grad_over_time(measurement, functionalisations,standardize=True, draw_ref=True):
+    colors = ['xkcd:green','xkcd:blue','xkcd:brown','xkcd:yellow','xkcd:black']
+
+    fig, ax = plt.subplots()
+    ref_data = measurement.reference_measurement.get_gradients()
+    data = measurement.get_gradients()
+    data = np.vstack((ref_data, data))
+    # reconfigure data so that channels are in one array
+
+    for i in range(data.shape[1]):
+        ax.plot(range(len(data)), data[:,i], color=colors[functionalisations[i]])
+
+    plt.show()
+
 
 def draw_all_channel_data_as_line(all_data, functionalisations, num_from = 0, num_to = -1):
 
@@ -276,6 +297,7 @@ def draw_all_peak(measurements, functionalisations, show_all_channels=False):
         ax.set_title(label)
         ax.set_xticks([0, 1, 2, 3, 4])
         plt.show()
+
 
 def pretty_draw_everything(measurements, functionalisations, failures, show_all_channels=False):
     colors = ['xkcd:green','xkcd:blue','xkcd:brown','xkcd:yellow','xkcd:black']

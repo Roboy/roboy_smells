@@ -16,7 +16,7 @@ def standardize_measurements_2(measurements, num_channels=64, debug=False):
         if last_meas is None or last_meas != measurement.label:
             last_meas = measurement.label
 
-        if measurement.label == 'ref':
+        if measurement.label == 'ref' or measurement.label == 'null':
             last_null_meas = measurement
         else:
             if last_null_meas is None:

@@ -19,14 +19,15 @@ class Measurement:
         self.grouped_data = None
         self.total_avg_by_group = None
         self.peak_avg_by_group = None
+        self.gradients = None
 
     def get_data(self, standardize=True, force=False):
         if standardize:
             if self.standardized_data is None or force:
                 if self.reference_measurement is None:
-                    print("ERROR - NO REFERENCE MEASUREMENT")
-                    return self.data[:, self.correct_channels]
-                self.standardized_data = 100*(self.data[:, self.correct_channels]/(1e-15 + self.reference_measurement.get_last_average(10, standardize=False, force=force))-1)
+                    self.standardized_data = 100*(self.data[:, self.correct_channels]/(1e-15 + self.get_last_average(10, standardize=False, force=force))-1)
+                else:
+                    self.standardized_data = 100*(self.data[:, self.correct_channels]/(1e-15 + self.reference_measurement.get_last_average(10, standardize=False, force=force))-1)
 
             return self.standardized_data
 
@@ -46,6 +47,11 @@ class Measurement:
         if self.peak_avg is None or force:
             self.peak_avg = dp.get_measurement_peak_average(self.get_data(force=force))
         return self.peak_avg
+
+    def get_gradients(self):
+        if self.gradients is None:
+            self.gradients = np.gradient(self.get_data(), axis=1)
+        return self.gradients
 
     # METHODS FOR GROUPED BY FUNCTIONALISATION
     def get_grouped_measurements(self, force=False):
