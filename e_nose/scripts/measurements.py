@@ -1,6 +1,19 @@
 import numpy as np
-import data_visualization as dv
 import data_processing as dp
+from enum import Enum, auto
+
+class DataType(Enum):
+    TOTAL_AVG = auto()
+    PEAK_AVG = auto()
+    GROUPED_TOTAL_AVG = auto()
+    GROUPED_PEAK_AVG = auto()
+    GRADIENTS = auto()
+    LAST_AVG = auto()
+    STANDARDIZED = auto()
+    GROUPED = auto()
+
+    def is_grouped(self):
+        return self is self.GROUPED_TOTAL_AVG or self is self.GROUPED_PEAK_AVG
 
 
 class Measurement:
@@ -12,67 +25,47 @@ class Measurement:
         self.functionalisations = functionalisations
         self.correct_functionalisations = np.array(functionalisations)[correct_channels]
         self.reference_measurement = None
-        self.standardized_data = None
-        self.total_avg = None
-        self.last_average = None
-        self.peak_avg = None
-        self.grouped_data = None
-        self.total_avg_by_group = None
-        self.peak_avg_by_group = None
-        self.gradients = None
+        self.cached_data = {}
 
     def get_data(self, standardize=True, force=False):
         if standardize:
-            if self.standardized_data is None or force:
+            if DataType.STANDARDIZED not in self.cached_data or force:
                 if self.reference_measurement is None:
-                    self.standardized_data = 100*(self.data[:, self.correct_channels]/(1e-15 + self.get_last_average(10, standardize=False, force=force))-1)
+                    self.cached_data[DataType.STANDARDIZED] = \
+                        100*(self.data[:, self.correct_channels]/(1e-15 + self.get_data_as(DataType.LAST_AVG, False, num_last=10))-1)
                 else:
-                    self.standardized_data = 100*(self.data[:, self.correct_channels]/(1e-15 + self.reference_measurement.get_last_average(10, standardize=False, force=force))-1)
+                    self.cached_data[DataType.STANDARDIZED] = \
+                        100*(self.data[:, self.correct_channels]/(1e-15 + self.reference_measurement.get_data_as(DataType.LAST_AVG, False, num_last=10))-1)
 
-            return self.standardized_data
+            return self.cached_data[DataType.STANDARDIZED]
 
         return self.data[:, self.correct_channels]
 
-    def get_last_average(self, num_last, standardize=True, force=False):
-        if self.last_average is None or force:
-            self.last_average = np.mean(self.get_data(standardize, force)[-num_last:,:], axis=0)
-        return self.last_average
+    def get_data_as(self, datatype, standardize=True, force=False, num_last=10, num_samples=10):
 
-    def get_total_average(self, standardize=True, force=False):
-        if self.total_avg is None or force:
-            self.total_avg = np.mean(self.get_data(standardize, force), axis=0)
-        return self.total_avg
+        # having standardize is default, the non-standardized data will not be cached
+        if datatype in self.cached_data and not force and standardize:
+            return self.cached_data[datatype]
 
-    def get_peak_average(self, force=False):
-        if self.peak_avg is None or force:
-            self.peak_avg = dp.get_measurement_peak_average(self.get_data(force=force))
-        return self.peak_avg
+        data_as = None
+        if datatype is DataType.LAST_AVG:
+            data_as = np.mean(self.get_data(standardize, force)[-num_last:, :], axis=0)
+        elif datatype is DataType.TOTAL_AVG:
+            data_as = np.mean(self.get_data(standardize, force), axis=0)
+        elif datatype is DataType.PEAK_AVG:
+            data_as = dp.get_measurement_peak_average(self.get_data(standardize, force=force))
+        elif datatype is DataType.GRADIENTS:
+            data_as = np.gradient(self.get_data(standardize, force), axis=1)
+        elif datatype is DataType.GROUPED_TOTAL_AVG:
+            data_as = np.mean(self.get_data_as(DataType.GROUPED, standardize, force), axis=0)
+        elif datatype is DataType.GROUPED_PEAK_AVG:
+            data_as = \
+                dp.get_measurement_peak_average(self.get_data_as(DataType.GROUPED, standardize, force), num_samples)
+        elif datatype is DataType.GROUPED:
+            data_as = \
+                dp.group_meas_data_by_functionalisation(self.get_data(standardize, force), self.correct_functionalisations)
 
-    def get_gradients(self):
-        if self.gradients is None:
-            self.gradients = np.gradient(self.get_data(), axis=1)
-        return self.gradients
+        if standardize:
+            self.cached_data[datatype] = data_as
+        return data_as
 
-    # METHODS FOR GROUPED BY FUNCTIONALISATION
-    def get_grouped_measurements(self, force=False):
-        if self.grouped_data is None:
-            self.grouped_data = dp.group_meas_data_by_functionalisation(self.get_data(force=force), self.correct_functionalisations)
-        return self.grouped_data
-
-    def get_total_average_by_group(self, force=False):
-        if self.total_avg_by_group is None:
-            self.total_avg_by_group = np.mean(self.get_grouped_measurements(force=force), axis=0)
-        return self.total_avg_by_group
-
-    def get_peak_average_by_group(self, num_samples=10, force=False):
-        if self.peak_avg_by_group is None:
-            self.peak_avg_by_group = \
-                dp.get_measurement_peak_average(self.get_grouped_measurements(force=force), num_samples)
-        return self.peak_avg_by_group
-
-    # METHODS FOR VISUALIZATION OF SINGLE MEASUREMENTS
-    def pretty_print(self):
-        dv.pretty_print(self)
-
-    def pretty_draw(self):
-        dv.pretty_draw_meas(self)

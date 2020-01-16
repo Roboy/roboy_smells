@@ -2,10 +2,7 @@
 import numpy as np
 from measurements import Measurement
 
-def standardize_measurements_2(measurements, num_channels=64, debug=False):
-    in_label = False
-    prev_meas = None
-
+def standardize_measurements(measurements):
     last_null_meas = None
     clean_measurements = []
 
@@ -28,41 +25,6 @@ def standardize_measurements_2(measurements, num_channels=64, debug=False):
             
     return clean_measurements
 
-
-def standardize_measurements(data, num_channels=64, use_last=5, debug=False):
-    in_label = False
-    prev_meas = None
-
-    for ts in data:
-        row_data = data[ts]
-
-        if prev_meas is None:
-            prev_meas = row_data['channels']
-        else:
-            if debug:
-                # print("row data shape:",np.array(row_data['channels']).shape)
-                # print("prev_meas shape:", prev_meas.shape)
-                # print("row_data label: ",row_data['label'])
-                print(ts)
-            prev_meas = np.vstack((prev_meas, row_data['channels']))
-            prev_meas = prev_meas[-use_last:, :]
-
-        # assuming that two different labels are not directly after one another
-        if row_data['label'] != '' and not in_label:
-            in_label = True
-            current_means = np.mean(prev_meas, axis=0)
-
-        if row_data['label'] == '':
-            in_label = False
-
-        if in_label:
-            if debug:
-                print("current_means:", current_means)
-                print("channels:", row_data['channels'])
-                print("standardized:", row_data['channels'] / current_means)
-            row_data['channels'] = row_data['channels'] / current_means
-
-    return data
 
 def get_labeled_measurements(data, correct_channels, functionalisations, debug=False):
     current_label = ''

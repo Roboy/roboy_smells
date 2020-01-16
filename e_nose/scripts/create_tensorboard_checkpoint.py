@@ -4,10 +4,12 @@ from tensorflow.contrib.tensorboard.plugins import projector
 import numpy as np
 import file_reader
 import data_processing as dp
+from measurements import DataType
 
 
 LOG_DIR = 'logs'
 DATA_DIR = 'data'
+datatype = DataType.TOTAL_AVG
 
 #TODO maybe make this configurable so multiple metadata files are possible
 metadata = 'metadata.tsv'
@@ -38,7 +40,7 @@ ls = []
 for i, measurement in enumerate(measurements):
     #TODO make type of measurement average configureable
     # IF YOU WANT TO CHANGE WHAT TYPE AVERAGE IS USED DO IT HERE!
-    ms[i, :] = measurement.get_total_average()
+    ms[i, :] = measurement.get_data_as(datatype)
     ls.append(measurement.label)
 
 # Save metadata
