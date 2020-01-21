@@ -1,9 +1,5 @@
 client_config_backend: file
 client_config_file: Uploader/client_secrets.json
-#client_config:
-#  client_id: 32136948860-ltlb5brpk3friiaurthqe5sec6p78vr1.apps.googleusercontent.com
-#  client_secret: DzOUiWjHiCkLL6NW4iDB-jrr
-
 save_credentials: True
 save_credentials_backend: file
 save_credentials_file: Uploader/credentials.json
