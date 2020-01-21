@@ -1,0 +1,4 @@
+embeddings {
+  tensor_name: "measurements:0"
+  metadata_path: "metadata.tsv"
+}
