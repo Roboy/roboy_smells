@@ -6,8 +6,9 @@ import file_reader
 import data_processing as dp
 from measurements import DataType
 
-LOG_DIR = 'logs'
-DATA_DIR = 'data'
+appendix = ''
+LOG_DIR = 'logs' + appendix
+DATA_DIR = 'data' + appendix
 NUM_CPU_CORES = 6
 NUM_THREADS_PER_CORE = 2
 datatype = DataType.TOTAL_AVG
@@ -36,12 +37,12 @@ print('Total of', len(measurements), 'measurements')
 assert (len(measurements) > 0)
 
 # Save data to tf variable
-ms = np.zeros((len(measurements), measurements[0].get_data().shape[1]))
+ms = np.zeros((len(measurements), 63))
 ls = []
 for i, measurement in enumerate(measurements):
     # TODO make type of measurement average configureable
     # IF YOU WANT TO CHANGE WHAT TYPE AVERAGE IS USED DO IT HERE!
-    ms[i, :] = measurement.get_data_as(datatype)
+    ms[i, :] = measurement.get_data_extended(datatype)
     ls.append(measurement.label)
 
 # Save metadata
@@ -75,4 +76,4 @@ with tf.compat.v1.Session(config=config) as sess:
 
 print()
 print('Successfully created tensorboard files. Use the following command the launch tensorboard:')
-print('tensorboard --logdir=logs')
+print(str('tensorboard --logdir=', LOG_DIR))
