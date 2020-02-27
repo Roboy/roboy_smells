@@ -120,7 +120,8 @@ def draw_meas_grad_over_time(measurement, functionalisations, standardize=True, 
 
 
 def draw_all_channel_data_as_line(all_data, functionalisations, num_from=0, num_to=-1):
-    colors = ['xkcd:green', 'xkcd:blue', 'xkcd:brown', 'xkcd:yellow', 'xkcd:black']
+    colors = ['xkcd:green', 'xkcd:blue', 'xkcd:brown', 'xkcd:yellow', 'xkcd:black',
+              'xkcd:red', 'xkcd:magenta', 'xkcd:cyan', 'xkcd:lightgreen']
 
     for file in all_data:
         print(file)

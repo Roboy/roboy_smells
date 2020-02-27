@@ -5,7 +5,7 @@ import numpy as np
 from .measurements import Measurement, DataRowsSet_t, WorkingChannels_t, Functionalisations_t
 
 
-def standardize_measurements(measurements: List[Measurement])\
+def standardize_measurements(measurements: List[Measurement]) \
         -> List[Measurement]:
     last_null_meas = None
     clean_measurements = []
@@ -28,7 +28,42 @@ def standardize_measurements(measurements: List[Measurement])\
     return clean_measurements
 
 
-def get_labeled_measurements(data: DataRowsSet_t, correct_channels: WorkingChannels_t, functionalisations: Functionalisations_t, debug=False)\
+def remove_broken_channels(functionalisations: Functionalisations_t, working_channels: WorkingChannels_t,
+                           data: DataRowsSet_t) \
+        -> Tuple[Functionalisations_t, WorkingChannels_t, DataRowsSet_t]:
+    """
+    Removes all channels that are tagged as not working from the given dataset
+    :param functionalisations:
+    :param working_channels:
+    :param data:
+    :return:
+    """
+    functionalisations = np.array(functionalisations)[working_channels]
+    for measurement in data:
+        data[measurement]['channels'] = np.array(data[measurement]['channels'])[working_channels]
+    working_channels = np.array(working_channels)[working_channels]
+    return functionalisations, working_channels, data
+
+
+def remove_broken_channels_multi_files(
+        data_tuple: Tuple[Functionalisations_t, WorkingChannels_t, Dict[str, DataRowsSet_t]]) \
+        -> Tuple[Functionalisations_t, WorkingChannels_t, Mapping[str, DataRowsSet_t]]:
+    """
+    Removes all channels that are tagged as not working from the given MULTIPLE datasets
+    :param data_tuple: Data Tuple as returned by read_all_files_in_folder
+    :return:
+    """
+    functionalisations, working_channels, all_data = data_tuple
+    for file in all_data:
+        for measurement in all_data[file]:
+            all_data[file][measurement]['channels'] = np.array(all_data[file][measurement]['channels'])[working_channels]
+    functionalisations = np.array(functionalisations)[working_channels]
+    working_channels = np.array(working_channels)[working_channels]
+    return functionalisations, working_channels, all_data
+
+
+def get_labeled_measurements(data: DataRowsSet_t, correct_channels: WorkingChannels_t,
+                             functionalisations: Functionalisations_t, debug=False) \
         -> List[Measurement]:
     """
     Extracts the individual Measurements from a DataRowSet by splitting every time the label changes
@@ -93,7 +128,7 @@ def get_labeled_measurements(data: DataRowsSet_t, correct_channels: WorkingChann
     return measurements
 
 
-def get_measurement_peak_average(data: np.ndarray, num_samples=10)\
+def get_measurement_peak_average(data: np.ndarray, num_samples=10) \
         -> np.ndarray:
     max_index = np.argmax(np.abs(data), axis=0)
     # get adjecent samples
@@ -115,7 +150,7 @@ def get_measurement_peak_average(data: np.ndarray, num_samples=10)\
     return np.array(all_peak_data)
 
 
-def group_meas_data_by_functionalisation(data: np.ndarray, functionalisations: Functionalisations_t)\
+def group_meas_data_by_functionalisation(data: np.ndarray, functionalisations: Functionalisations_t) \
         -> np.ndarray:
     averages = None
     for row in data:
@@ -128,7 +163,7 @@ def group_meas_data_by_functionalisation(data: np.ndarray, functionalisations: F
     return averages
 
 
-def group_row_data_by_functionalities(row: np.ndarray, functionalities: Functionalisations_t)\
+def group_row_data_by_functionalities(row: np.ndarray, functionalities: Functionalisations_t) \
         -> Tuple[Mapping[int, Dict[str, List[float]]], List[float]]:
     """
     Groups a single Row of e_nose measurement data by their functionalities
