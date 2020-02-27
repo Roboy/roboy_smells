@@ -128,8 +128,10 @@ def draw_all_channel_data_as_line(all_data, functionalisations, num_from=0, num_
         data = all_data[file]
         fig, ax = plt.subplots()
 
+        num_channels = len(functionalisations)
+
         # reconfigure data so that channels are in one array
-        data_matrix = np.zeros((len(data), 64))
+        data_matrix = np.zeros((len(data), num_channels))
 
         last_label = ""
         for i, time in enumerate(data):
@@ -143,7 +145,7 @@ def draw_all_channel_data_as_line(all_data, functionalisations, num_from=0, num_
             channel_data[np.argwhere(channel_data > 45000)] = 0
             data_matrix[i, :] = channel_data
 
-        for i in range(64):
+        for i in range(num_channels):
             ax.plot(range(len(data_matrix[num_from:num_to, i])), data_matrix[num_from:num_to, i],
                     color=colors[functionalisations[i]])
 

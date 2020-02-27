@@ -34,10 +34,10 @@ def get_sensor_spec(sensor_id: int) -> Tuple[Functionalisations_t, WorkingChanne
                               3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4,
                               5, 5, 5, 5, 5, 5, 5, 5, 0, 0, 0, 0, 0, 0, 0, 0,
                               6, 6, 6, 6, 6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 7, 7]
-        # Channel 15 & 23 disabled as it gives huge numbers (but it kinda works..?)
+        # Channel 15, 16 & 23 disabled as it gives huge numbers (but it kinda works..?)
         # Channel 22, 27, 31, 35, 39 are always stuck to the same number
         failures            = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-                               0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1,
+                               1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1,
                                0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0,
                                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
     else:
