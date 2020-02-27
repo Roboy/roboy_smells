@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 import numpy as np
 from .measurements import DataType, DataRowsSet_t
@@ -120,15 +120,22 @@ def draw_meas_grad_over_time(measurement, functionalisations, standardize=True, 
 
 
 def draw_all_channel_data_as_line(all_data, functionalisations, num_from=0, num_to=-1):
+    draw_selected_channel_data_as_line(all_data, functionalisations, list(range(len(functionalisations))), num_from,
+                                       num_to)
+
+
+def draw_selected_channel_data_as_line(all_data, functionalisations, channels, num_from=0, num_to=-1):
     colors = ['xkcd:green', 'xkcd:blue', 'xkcd:brown', 'xkcd:yellow', 'xkcd:black',
               'xkcd:red', 'xkcd:magenta', 'xkcd:cyan', 'xkcd:lightgreen']
 
     for file in all_data:
         print(file)
         data = all_data[file]
+        fig: Optional[plt.Figure] = None
+        ax: Optional[plt.Axes] = None
         fig, ax = plt.subplots()
 
-        num_channels = len(functionalisations)
+        num_channels = len(channels)
 
         # reconfigure data so that channels are in one array
         data_matrix = np.zeros((len(data), num_channels))
@@ -138,15 +145,16 @@ def draw_all_channel_data_as_line(all_data, functionalisations, num_from=0, num_
             if data[time]['label'] != last_label:
                 if i > num_from:
                     if num_to == -1 or i < num_to:
-                        ax.axvline(x=(i - num_from))
-                        ax.text((i - num_from - 50), 27000, last_label, ha='right', rotation=90, va='bottom')
+                        ax.axvline(x=i)
+                        # This is a hacky way I found by digging in the code to make the text appear exactly above the figure
+                        ax.text(i, 1.05, last_label, ha='right', rotation=90, va='bottom', transform=ax._xaxis_transform)
                 last_label = data[time]['label']
-            channel_data = data[time]['channels']
-            channel_data[np.argwhere(channel_data > 45000)] = 0
+            channel_data = data[time]['channels'][channels]
+            channel_data[np.argwhere(channel_data > 30000)] = 0
             data_matrix[i, :] = channel_data
 
         for i in range(num_channels):
-            ax.plot(range(len(data_matrix[num_from:num_to, i])), data_matrix[num_from:num_to, i],
+            ax.plot(range(num_from, num_from+len(data_matrix[num_from:num_to, i])), data_matrix[num_from:num_to, i],
                     color=colors[functionalisations[i]])
 
         plt.show()
