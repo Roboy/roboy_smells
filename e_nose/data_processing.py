@@ -1,9 +1,12 @@
 # data_processing_old.py
+from typing import List, Optional, Tuple, Mapping, Dict
+
 import numpy as np
-from .measurements import Measurement
+from .measurements import Measurement, DataRowsSet_t, WorkingChannels_t, Functionalisations_t
 
 
-def standardize_measurements(measurements):
+def standardize_measurements(measurements: List[Measurement])\
+        -> List[Measurement]:
     last_null_meas = None
     clean_measurements = []
     last_meas = None
@@ -17,7 +20,7 @@ def standardize_measurements(measurements):
         else:
             if last_null_meas is None:
                 print("ERROR - NO NULL MEASUREMENT FOUND")
-                return
+                return []
 
             measurement.reference_measurement = last_null_meas
             clean_measurements.append(measurement)
@@ -25,15 +28,25 @@ def standardize_measurements(measurements):
     return clean_measurements
 
 
-def get_labeled_measurements(data, correct_channels, functionalisations, debug=False):
+def get_labeled_measurements(data: DataRowsSet_t, correct_channels: WorkingChannels_t, functionalisations: Functionalisations_t, debug=False)\
+        -> List[Measurement]:
+    """
+    Extracts the individual Measurements from a DataRowSet by splitting every time the label changes
+    :param data:
+    :param correct_channels:
+    :param functionalisations:
+    :param debug:
+    :return:
+    """
     current_label = ''
-    current_measurement = None
+    current_measurement: Optional[np.ndarray] = None
     current_temperature = 0
     current_gas = 0
-    current_humidty = 0
+    current_humidity = 0
     current_pressure = 0
     current_altitude = 0
-    measurements = []
+    time_stamp = ''
+    measurements: List[Measurement] = []
 
     for ts in data:
         row_data = data[ts]
@@ -53,14 +66,14 @@ def get_labeled_measurements(data, correct_channels, functionalisations, debug=F
                 if debug:
                     print("new measurement; cl:", current_label, " - rdl:", row_data['label'])
                 meas = Measurement(current_measurement, current_label, time_stamp, correct_channels, functionalisations,
-                                   current_temperature, current_gas, current_humidty, current_pressure,
+                                   current_temperature, current_gas, current_humidity, current_pressure,
                                    current_altitude)
                 measurements.append(meas)
 
             current_label = row_data['label']
             current_temperature = row_data['temperature']
             current_gas = row_data['gas']
-            current_humidty = row_data['humidity']
+            current_humidity = row_data['humidity']
             current_pressure = row_data['pressure']
             current_altitude = row_data['altitude']
             time_stamp = ts
@@ -74,13 +87,14 @@ def get_labeled_measurements(data, correct_channels, functionalisations, debug=F
 
     if current_label is not '':
         meas = Measurement(current_measurement, current_label, time_stamp, correct_channels, functionalisations,
-                           current_temperature, current_gas, current_humidty, current_pressure, current_altitude)
+                           current_temperature, current_gas, current_humidity, current_pressure, current_altitude)
         measurements.append(meas)
 
     return measurements
 
 
-def get_measurement_peak_average(data, num_samples=10):
+def get_measurement_peak_average(data: np.ndarray, num_samples=10)\
+        -> np.ndarray:
     max_index = np.argmax(np.abs(data), axis=0)
     # get adjecent samples
     all_peak_data = []
@@ -101,7 +115,8 @@ def get_measurement_peak_average(data, num_samples=10):
     return np.array(all_peak_data)
 
 
-def group_meas_data_by_functionalisation(data, functionalisations):
+def group_meas_data_by_functionalisation(data: np.ndarray, functionalisations: Functionalisations_t)\
+        -> np.ndarray:
     averages = None
     for row in data:
         if averages is None:
@@ -113,14 +128,21 @@ def group_meas_data_by_functionalisation(data, functionalisations):
     return averages
 
 
-def group_row_data_by_functionalities(row, functionalities):
-    grouped_data = {}
-    averaged_data = np.zeros(1 + np.max(list(map(int, functionalities))))
+def group_row_data_by_functionalities(row: np.ndarray, functionalities: Functionalisations_t)\
+        -> Tuple[Mapping[int, Dict[str, List[float]]], List[float]]:
+    """
+    Groups a single Row of e_nose measurement data by their functionalities
+    :param row:
+    :param functionalities:
+    :return: Tuple consisting of values grouped by functionalization, averages by functionalization
+    """
+    grouped_data: Mapping[int, Dict[str, List[float]]] = {}
+    averaged_data: List[float] = [0] * (1 + np.max(list(map(int, functionalities))))
     for i in np.unique(functionalities):
-        grouped_data[i] = {'values': []}
+        grouped_data[int(i)] = {'values': []}
 
     for value, function in np.vstack((row, functionalities)).T:
-        grouped_data[function]['values'].append(value)
+        grouped_data[int(function)]['values'].append(float(value))
         averaged_data[int(function)] = averaged_data[int(function)] + float(value)
 
     for i in np.unique(functionalities):

@@ -1,21 +1,25 @@
+from typing import List
+
 import numpy as np
-from .measurements import DataType
-import matplotlib.pyplot as plt; plt.rcdefaults()
+from .measurements import DataType, DataRowsSet_t
 import matplotlib.pyplot as plt
 
+plt.rcdefaults()
 
-def pretty_print(data):
+
+def pretty_print(data: DataRowsSet_t):
     for ts in data:
-        print(ts,":",data[ts]['channels'],";label:",data[ts]['label'])
+        print(ts, ":", data[ts]['channels'], ";label:", data[ts]['label'])
 
-def draw_bar_meas(measurements, datatypes, standardize=True, force=False, num_last=1, num_samples=1):
+
+def draw_bar_meas(measurements, datatypes: List[DataType], standardize=True, force=False, num_last=1, num_samples=1):
     colors = ['xkcd:green', 'xkcd:blue', 'xkcd:brown', 'xkcd:yellow', 'xkcd:black']
     for measurement in measurements:
         plt.figure(figsize=(15, 6))
         groups = np.unique(measurement.correct_functionalisations)
 
         for i, datatype in enumerate(datatypes):
-            plt.subplot(1, len(datatypes), i+1)
+            plt.subplot(1, len(datatypes), i + 1)
 
             if datatype is DataType.GROUPED_PEAK_AVG or datatype is DataType.GROUPED_TOTAL_AVG:
                 y_pos = np.arange(len(groups))
@@ -27,7 +31,7 @@ def draw_bar_meas(measurements, datatypes, standardize=True, force=False, num_la
                 continue
 
             barlist = plt.bar(y_pos, measurement.get_data_as(datatype, standardize, force, num_last, num_samples),
-                    align='center', color=colors, alpha=0.5)
+                              align='center', color=colors, alpha=0.5)
             plt.title("{} Channels: {} at {}".format(datatype, measurement.label, measurement.ts))
 
             if datatype is DataType.LAST_AVG or datatype is DataType.PEAK_AVG or datatype is DataType.TOTAL_AVG:
@@ -37,12 +41,13 @@ def draw_bar_meas(measurements, datatypes, standardize=True, force=False, num_la
         plt.show()
 
 
-def draw_bar_meas_direct_comp(measurements, functionalisations, datatype, standardize=True, force=False, num_last=1, num_samples=1):
+def draw_bar_meas_direct_comp(measurements, functionalisations, datatype, standardize=True, force=False, num_last=1,
+                              num_samples=1):
     if not datatype.is_grouped():
         print("Data type not supported (yet?)")
         return
 
-    colors = ['xkcd:green','xkcd:blue','xkcd:brown','xkcd:yellow','xkcd:black']
+    colors = ['xkcd:green', 'xkcd:blue', 'xkcd:brown', 'xkcd:yellow', 'xkcd:black']
 
     groups = np.unique(functionalisations)
     y_pos = np.arange(len(groups))
@@ -64,14 +69,15 @@ def draw_bar_meas_direct_comp(measurements, functionalisations, datatype, standa
         if last_label != measurement.label and last_label != '':
             ax.set_ylabel('R/R0')
             ax.set_title(last_label)
-            ax.set_xticks([0,1,2,3,4])
+            ax.set_xticks([0, 1, 2, 3, 4])
             plt.show()
 
             fig, ax = plt.subplots()
             count = 0
 
-        width = 1/label_counts[measurement.label]
-        bar = ax.bar(y_pos + width*count, measurement.get_data_as(datatype, standardize, force, num_last, num_samples),
+        width = 1 / label_counts[measurement.label]
+        bar = ax.bar(y_pos + width * count,
+                     measurement.get_data_as(datatype, standardize, force, num_last, num_samples),
                      width, align='center', color=colors)
 
         for i in range(len(bar)):
@@ -85,21 +91,21 @@ def draw_bar_meas_direct_comp(measurements, functionalisations, datatype, standa
     plt.show()
 
 
-def draw_meas_channel_over_time(measurement, functionalisations,standardize=True, draw_ref=True):
-    colors = ['xkcd:green','xkcd:blue','xkcd:brown','xkcd:yellow','xkcd:black']
+def draw_meas_channel_over_time(measurement, functionalisations, standardize=True, draw_ref=True):
+    colors = ['xkcd:green', 'xkcd:blue', 'xkcd:brown', 'xkcd:yellow', 'xkcd:black']
 
     fig, ax = plt.subplots()
     data = measurement.get_data(standardize)
     # reconfigure data so that channels are in one array
 
     for i in range(data.shape[1]):
-        ax.plot(range(len(data)), data[:,i], color=colors[functionalisations[i]])
+        ax.plot(range(len(data)), data[:, i], color=colors[functionalisations[i]])
 
     plt.show()
 
 
-def draw_meas_grad_over_time(measurement, functionalisations,standardize=True, draw_ref=True):
-    colors = ['xkcd:green','xkcd:blue','xkcd:brown','xkcd:yellow','xkcd:black']
+def draw_meas_grad_over_time(measurement, functionalisations, standardize=True, draw_ref=True):
+    colors = ['xkcd:green', 'xkcd:blue', 'xkcd:brown', 'xkcd:yellow', 'xkcd:black']
 
     fig, ax = plt.subplots()
     data = measurement.get_data_as(DataType.GRADIENTS)
@@ -108,14 +114,13 @@ def draw_meas_grad_over_time(measurement, functionalisations,standardize=True, d
         data = np.vstack((ref_data, data))
 
     for i in range(data.shape[1]):
-        ax.plot(range(len(data)), data[:,i], color=colors[functionalisations[i]])
+        ax.plot(range(len(data)), data[:, i], color=colors[functionalisations[i]])
 
     plt.show()
 
 
-def draw_all_channel_data_as_line(all_data, functionalisations, num_from = 0, num_to = -1):
-
-    colors = ['xkcd:green','xkcd:blue','xkcd:brown','xkcd:yellow','xkcd:black']
+def draw_all_channel_data_as_line(all_data, functionalisations, num_from=0, num_to=-1):
+    colors = ['xkcd:green', 'xkcd:blue', 'xkcd:brown', 'xkcd:yellow', 'xkcd:black']
 
     for file in all_data:
         print(file)
@@ -135,11 +140,10 @@ def draw_all_channel_data_as_line(all_data, functionalisations, num_from = 0, nu
                 last_label = data[time]['label']
             channel_data = data[time]['channels']
             channel_data[np.argwhere(channel_data > 45000)] = 0
-            data_matrix[i,:] = channel_data
+            data_matrix[i, :] = channel_data
 
         for i in range(64):
-            ax.plot(range(len(data_matrix[num_from:num_to,i])), data_matrix[num_from:num_to,i], color=colors[functionalisations[i]])
+            ax.plot(range(len(data_matrix[num_from:num_to, i])), data_matrix[num_from:num_to, i],
+                    color=colors[functionalisations[i]])
 
         plt.show()
-
-

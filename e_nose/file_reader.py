@@ -1,18 +1,27 @@
 # file_reader.py
-import numpy as np
 import csv
-from datetime import datetime
-import os
 import glob
-import time
+import os
+from datetime import datetime
+from typing import Tuple, Mapping
+
+import numpy as np
+
+from .measurements import Functionalisations_t, WorkingChannels_t, DataRowsSet_t
 
 
-def convert_to_datetime(possible_date):
+def convert_to_datetime(possible_date: str) -> datetime:
     # Fri Jan  3 12:19:00 2020
     return datetime.strptime(possible_date, "%a %b %d %H:%M:%S %Y")
 
 
-def read_data_csv(file_name, debug=False):
+def read_data_csv(file_name: str, debug=False) -> Tuple[Functionalisations_t, WorkingChannels_t, DataRowsSet_t]:
+    """
+    Reads one CSV file of Data
+    :param file_name:
+    :param debug:
+    :return:
+    """
     functionalisations = [2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 0, 0, 0, 0, 0, 0, 4, 4, 4, 4,
                           4, 4, 4, 4, 4, 4, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 2, 2, 2,
                           2, 2]
@@ -44,8 +53,18 @@ def read_data_csv(file_name, debug=False):
     return functionalisations, correct_channels, data
 
 
-def read_all_files_in_folder(folder_name, extension="csv", debug=False):
+def read_all_files_in_folder(folder_name: str, extension="csv", debug=False)\
+        -> Tuple[Functionalisations_t, WorkingChannels_t, Mapping[str, DataRowsSet_t]]:
+    """
+    Reads all CSV files in a folder and returns functionalizations, working cannels, Dict[filename, Data]
+    :param folder_name:
+    :param extension:
+    :param debug:
+    :return:
+    """
     all_data = {}
+    functionalisations = []
+    correct_channels = []
     for file in glob.glob(os.path.join(folder_name, '*.{}'.format(extension))):
         functionalisations, correct_channels, data = read_data_csv(file, debug)
         all_data[file] = data
