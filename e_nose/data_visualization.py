@@ -119,26 +119,33 @@ def draw_meas_grad_over_time(measurement, functionalisations, standardize=True, 
     plt.show()
 
 
-def draw_all_channel_data_as_line(all_data, functionalisations, num_from=0, num_to=-1):
+def draw_all_channel_data_as_line(all_data, functionalisations, num_from=0, num_to=-1, secondary=None):
     draw_selected_channel_data_as_line(all_data, functionalisations, list(range(len(functionalisations))), num_from,
-                                       num_to)
+                                       num_to, secondary)
 
 
-def draw_selected_channel_data_as_line(all_data, functionalisations, channels, num_from=0, num_to=-1):
-    colors = ['xkcd:green', 'xkcd:blue', 'xkcd:brown', 'xkcd:yellow', 'xkcd:black',
-              'xkcd:red', 'xkcd:magenta', 'xkcd:cyan', 'xkcd:lightgreen']
+def draw_selected_channel_data_as_line(all_data, functionalisations, channels, num_from=0, num_to=-1, secondary=None):
+    colors = ['xkcd:emerald green', 'xkcd:blue', 'xkcd:brown', 'xkcd:yellow', 'xkcd:black',
+              'xkcd:baby blue', 'xkcd:magenta', 'xkcd:violet', 'xkcd:lightgreen']
 
     for file in all_data:
         print(file)
         data = all_data[file]
         fig: Optional[plt.Figure] = None
         ax: Optional[plt.Axes] = None
+        ax2: Optional[plt.Axes] = None
         fig, ax = plt.subplots()
+
+        if secondary is not None:
+            # Second Y axis
+            ax2: plt.Axes = ax.twinx()
+            ax2.set_ylabel(secondary, color='r')
 
         num_channels = len(channels)
 
         # reconfigure data so that channels are in one array
         data_matrix = np.zeros((len(data), num_channels))
+        secondary_data = np.zeros(len(data))
 
         last_label = ""
         for i, time in enumerate(data):
@@ -152,9 +159,15 @@ def draw_selected_channel_data_as_line(all_data, functionalisations, channels, n
             channel_data = data[time]['channels'][channels]
             channel_data[np.argwhere(channel_data > 30000)] = 0
             data_matrix[i, :] = channel_data
+            if secondary is not None:
+                secondary_data[i] = data[time][secondary]
 
         for i in range(num_channels):
             ax.plot(range(num_from, num_from+len(data_matrix[num_from:num_to, i])), data_matrix[num_from:num_to, i],
                     color=colors[functionalisations[i]])
+
+        if secondary is not None:
+            ax2.plot(range(num_from, num_from+len(secondary_data[num_from:num_to])), secondary_data[num_from:num_to],
+                    color='r')
 
         plt.show()
