@@ -125,7 +125,7 @@ def draw_all_channel_data_as_line(all_data, functionalisations, num_from=0, num_
 
 
 def draw_selected_channel_data_as_line(all_data, functionalisations, channels, num_from=0, num_to=-1, secondary=None):
-    colors = ['xkcd:emerald green', 'xkcd:blue', 'xkcd:brown', 'xkcd:yellow', 'xkcd:black',
+    colors = ['xkcd:black', 'xkcd:blue', 'xkcd:brown', 'xkcd:golden yellow', 'xkcd:emerald green',
               'xkcd:baby blue', 'xkcd:magenta', 'xkcd:violet', 'xkcd:lightgreen']
 
     for file in all_data:
