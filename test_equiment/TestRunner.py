@@ -1,12 +1,13 @@
 import time
 from datetime import datetime
 from datetime import timedelta
-from test_equiment.Classes.CSVWriter import CSVWriter
-from test_equiment.Classes.BMEConnector import BMEConnector
-from test_equiment.Classes.ServoConnector import ServoConnecor
-from test_equiment.Classes.eNoseConnector import eNoseConnector
-from test_equiment.Classes.TimeOverCalculator import TimeCalculator
-from test_equiment.Uploader.Uploader import Uploader
+from Classes.CSVWriter import CSVWriter
+from Classes.BMEConnector import BMEConnector
+from Classes.ServoConnector import ServoConnecor
+from Classes.eNoseConnector import eNoseConnector
+from Classes.TimeOverCalculator import TimeCalculator
+from Uploader.Uploader import Uploader
+import random
 
 
 class TestEquimentRunner:
@@ -47,12 +48,12 @@ class TestEquimentRunner:
                         sampleWriter.writeSample(time.time(), eNoseSample, bmeSample, labels[currentPos])
                         time.sleep(0.5)
                     time_now = datetime.now()
-                    feedback = time_now.strftime("%H:%M:%S") + '  current sample ' + labels[0] + ' measured'
+                    feedback = time_now.strftime("%H:%M:%S") + '  current sample ' + labels[currentPos] + ' measured'
                     if currentPos == 0:
                         currentPos = nextPos
                     else:
                         currentPos = 0
-                        nextPos += 1
+                        nextPos = random.randint(1, 7)
                     feedback += str(', next sample will be: ' + labels[currentPos])
                     print(feedback)
             loopsDone += 1
@@ -77,14 +78,14 @@ class TestEquimentRunner:
         up.uploadToGdrive(filename)
 
 
-labelsList = ['ref', 'cream_cheese', 'raisin', 'glogg', 'rucola', 'sunflower_oil', 'green_tea']
-num_loops = 1
-time_loop_min = 1  # in minutes
+labelsList = ['ref', 'coffee_powder', 'isopropanol', 'wodka', 'raisin', 'red_wine', 'orange_juice']
+num_loops = 10
+time_loop_min = 5  # in minutes
 time_loop = 60. * time_loop_min
-time_ref_min = 2  # in minutes
+time_ref_min = 5  # in minutes
 time_ref = time_ref_min * 60
 expected_time = num_loops * (len(labelsList) * (time_loop_min + time_ref_min)) + time_ref_min
 expected_time_end = datetime.now() + timedelta(minutes=expected_time)
 print('expected time: ', timedelta(minutes=expected_time), ' hours stoppes at: ',
       expected_time_end.strftime("%H:%M:%S"))
-TestEquimentRunner(labelsList, num_loops, time_loop, time_ref)
+TestEquimentRunner(labelsList, num_loops, time_loop, time_ref, False)

@@ -92,7 +92,7 @@ class Measurement:
         return self.data[:, self.correct_channels]
 
     def get_data_as(self, datatype: DataType, standardize: bool = True, force: bool = False,
-                    num_last: int = 10, num_samples: int = 10)\
+                    num_last: int = 10, num_samples: int = 10) \
             -> np.ndarray:
         """
 
@@ -134,7 +134,8 @@ class Measurement:
         return data_as
 
     def get_data_extended(self, datatype: DataType, standardize: bool = True, force: bool = False,
-                          num_last: int = 10, num_samples: int = 10)\
+                          num_last: int = 10, num_samples: int = 10, temperature: bool = False, gas: bool = False,
+                          humidity: bool = False, pressure: bool = False, altitude: bool = False) \
             -> np.ndarray:
         """
 
@@ -146,5 +147,15 @@ class Measurement:
         :return:
         """
         pure_data = self.get_data_as(datatype, standardize, force, num_last, num_samples)
-        pure_data = np.append(pure_data, [self.humidity, self.pressure, self.altitude])
+        if temperature:
+            pure_data = np.append(pure_data, self.temperature)
+        if gas:
+            pure_data = np.append(pure_data, self.gas)
+        if humidity:
+            pure_data = np.append(pure_data, self.humidity)
+        if pressure:
+            pure_data = np.append(pure_data, self.pressure)
+        if altitude:
+            pure_data = np.append(pure_data, self.altitude)
+
         return pure_data
