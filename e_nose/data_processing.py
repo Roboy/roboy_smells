@@ -56,7 +56,8 @@ def remove_broken_channels_multi_files(
     functionalisations, working_channels, all_data = data_tuple
     for file in all_data:
         for measurement in all_data[file]:
-            all_data[file][measurement]['channels'] = np.array(all_data[file][measurement]['channels'])[working_channels]
+            all_data[file][measurement]['channels'] = np.array(all_data[file][measurement]['channels'])[
+                working_channels]
     functionalisations = np.array(functionalisations)[working_channels]
     working_channels = np.array(working_channels)[working_channels]
     return functionalisations, working_channels, all_data
@@ -126,6 +127,16 @@ def get_labeled_measurements(data: DataRowsSet_t, correct_channels: WorkingChann
         measurements.append(meas)
 
     return measurements
+
+
+def high_pass_logdata(data: np.ndarray) -> np.ndarray:
+    """ Filters out slow trends from logarithmic data; zeroes the avg of the first 5 samples """
+    l1_filter = data[:5]
+    l1_factor = 1e-3
+    for i in range(len(data)):
+        l1_filter = (l1_filter + data[i] * l1_factor) / (1.0 + l1_factor)
+        data[i] -= l1_filter
+    return data
 
 
 def get_measurement_peak_average(data: np.ndarray, num_samples=10) \
