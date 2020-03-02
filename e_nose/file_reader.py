@@ -41,13 +41,21 @@ def get_sensor_spec(sensor_id: int) -> Tuple[Functionalisations_t, WorkingChanne
              6, 6, 6, 6, 6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 7, 7]
         )
         # Channel 15, 16 & 23 disabled as it gives huge numbers (but it kinda works..?)
-        # Channel 22, 27, 31, 35, 39 are always stuck to the same number
-        failures = np.array(
+        failures_huge = [15, 16, 23]
+        # Channel 22, 31, 27, 35, 39 are always stuck to the lower bound (347.9)
+        failures_too_low = [22, 31]
+        # Channels are IN SOME MEASUREMENTS stuck to the lower bound
+        failures_mid_low = [3,  4, 22, 25, 26, 27, 28, 29, 31, 35, 39, 60]
+        '''failures = np.array(
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
              0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1,
              0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0,
              0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-        )
+        )'''
+        failures = np.zeros(64, bool)
+        failures[failures_huge] = True
+        failures[failures_too_low] = True
+        failures[failures_mid_low] = True
     else:
         print('Unknown Sensor ID %i! No functionalisation and channel failure data available' % sensor_id)
     correct_channels = np.invert(np.array(failures).astype(bool))
