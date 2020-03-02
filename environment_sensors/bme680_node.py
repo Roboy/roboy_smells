@@ -20,7 +20,7 @@ def bme680_node():
     pub_altitude = rospy.Publisher('env_sensor/current_altitude', String, queue_size=10)
     rospy.init_node('bme680', anonymous=True)
     rate = rospy.Rate(1)  # 10hz
-
+    print('started ros node successfully!')
     while not rospy.is_shutdown():
         current_temp, current_gas, current_humidity, current_pressure, current_altitude = detect()
         pub_temp.publish(get_json_message(1, "Graph", "Temperature", 1, 0xFFFFFF, current_temp, time.time()))
@@ -32,13 +32,17 @@ def bme680_node():
 
 
 def detect():
-    global bme680
-    temp = bme680.temperature
-    gas = bme680.gas
-    humidity = bme680.humidity
-    pressure = bme680.pressure
-    altitude = bme680.altitude
-    return temp, gas, humidity, pressure, altitude
+    try:
+        global bme680
+        temp = bme680.temperature
+        gas = bme680.gas
+        humidity = bme680.humidity
+        pressure = bme680.pressure
+        altitude = bme680.altitude
+        return temp, gas, humidity, pressure, altitude
+    except:
+        print('error in ros node, lost connection to bme680 sensor')
+        return 0,0,0,0,0
 
 
 def init():
@@ -48,7 +52,7 @@ def init():
     bme680.sea_level_pressure = 953.25
 
 
-def get_json_message(id: int, type: String, title: String, position: int, color: int, value: float, timestamp: float):
+def get_json_message(id, type, title, position, color, value, timestamp):
     sensordata_json = {
         "id": id,
         "type": type,
@@ -63,7 +67,7 @@ def get_json_message(id: int, type: String, title: String, position: int, color:
 
 if __name__ == '__main__':
     try:
-        # init()
+        init()
         bme680_node()
     except rospy.ROSInterruptException:
         pass
