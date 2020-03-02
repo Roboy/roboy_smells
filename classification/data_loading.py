@@ -25,8 +25,9 @@ def train_test_split(measurements, split=0.8):
     for i, l in enumerate(labels):
         indices_label = np.argwhere(np.array(labels_measurements) == l).flatten()
 
-        num_samples = indices_label.size()
+        num_samples = indices_label.size
         if i == 0:
+            print(int(split*num_samples))
             measurements_train = measurements[indices_label][:int(split*num_samples)]
             measurements_test = measurements[indices_label][int(split*num_samples):]
         else:
