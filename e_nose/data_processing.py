@@ -121,7 +121,7 @@ def get_labeled_measurements(data: DataRowsSet_t, correct_channels: WorkingChann
             else:
                 current_measurement = np.vstack((current_measurement, row_data['channels']))
 
-    if current_label is not '':
+    if current_label != '':
         meas = Measurement(current_measurement, current_label, time_stamp, correct_channels, functionalisations,
                            current_temperature, current_gas, current_humidity, current_pressure, current_altitude)
         measurements.append(meas)
@@ -131,7 +131,7 @@ def get_labeled_measurements(data: DataRowsSet_t, correct_channels: WorkingChann
 
 def high_pass_logdata(data: np.ndarray) -> np.ndarray:
     """ Filters out slow trends from logarithmic data; zeroes the avg of the first 5 samples """
-    l1_filter = data[:5]
+    l1_filter = np.mean(data[:5], axis=0)
     l1_factor = 1e-3
     for i in range(len(data)):
         l1_filter = (l1_filter + data[i] * l1_factor) / (1.0 + l1_factor)
