@@ -1,9 +1,8 @@
 import argparse
 import os
 import numpy as np
-
+from classification.models.cnn1d_classes import load_data, Model1DCNN
 from ray import tune
-from classification.models.cnn1d_latent import load_data, Model1DCNN
 
 parent_path = os.getcwd()
 
@@ -12,55 +11,44 @@ parser.add_argument(
     "--smoke-test", action="store_true", help="Finish quickly for testing")
 args, _ = parser.parse_known_args()
 
-train_batch, val_batch = load_data(os.path.join(parent_path, 'data'))
+x_train, y_train, x_val, y_val, num_classes = load_data(os.path.join(parent_path, 'data'))
 
 class CNNTrainable(tune.Trainable):
     def _setup(self, config):
         import tensorflow as tf
 
         ## CONFIG
-        batch_size = 900
+        batch_size = 30
 
-        self.train_ds = tf.data.Dataset.from_tensor_slices((train_batch)).batch(batch_size)
-        self.val_ds = tf.data.Dataset.from_tensor_slices((val_batch)).batch(batch_size)
+        self.train_ds = tf.data.Dataset.from_tensor_slices((x_train, y_train)).batch(batch_size)
+        self.val_ds = tf.data.Dataset.from_tensor_slices((x_val, y_val)).batch(batch_size)
 
-        self.model = Model1DCNN(dilations=config["num_dilations"], filter_size=config["filter_size"])
+        self.model = Model1DCNN(num_classes=num_classes, dilations=config["num_dilations"], filter_size=config["filter_size"])
         self.optimizer = tf.keras.optimizers.Adam(lr=config["lr"])
         self.train_loss = tf.keras.metrics.Mean(name="train_loss")
         self.val_loss = tf.keras.metrics.Mean(name="val_loss")
+        self.train_acc = tf.keras.metrics.SparseCategoricalAccuracy()
+        self.val_acc = tf.keras.metrics.SparseCategoricalAccuracy()
+        self.loss_object = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=False)
 
         @tf.function
-        def triplet_loss(feats):
-            m = 0.01
-            diff_pos = feats[0:batch_size:3] - feats[1:batch_size:3]
-            diff_pos_sq = tf.math.reduce_sum(diff_pos ** 2, axis=1)
-            diff_neg = feats[0:batch_size:3] - feats[2:batch_size:3]
-            diff_neg_sq = tf.math.reduce_sum(diff_neg ** 2, axis=1)
-
-            L_triplet = tf.math.reduce_sum(tf.math.maximum(0.0, 1 - diff_neg_sq / (diff_pos_sq + m)))
-
-            L_pair = tf.math.reduce_sum(diff_pos_sq)
-            return L_triplet + L_pair
-
-        self.loss_object = triplet_loss
-
-        @tf.function
-        def train_step(batch):
+        def train_step(x, y):
             with tf.GradientTape() as tape:
-                predictions = self.model(batch)
-                loss = self.loss_object(predictions)
+                predictions = self.model(x)
+                loss = self.loss_object(y, predictions)
             gradients = tape.gradient(loss, self.model.trainable_variables)
             self.optimizer.apply_gradients(zip(gradients, self.model.trainable_variables))
 
             self.train_loss(loss)
+            self.train_acc(y, predictions)
 
         @tf.function
-        def val_step(batch):
-            predictions = self.model(batch)
-            loss = self.loss_object(predictions)
+        def val_step(x, y):
+            predictions = self.model(x)
+            loss = self.loss_object(y, predictions)
 
             self.val_loss(loss)
-
+            self.val_acc(y, predictions)
 
         self.tf_train_step = train_step
         self.tf_val_step = val_step
@@ -75,20 +63,25 @@ class CNNTrainable(tune.Trainable):
         self.model.load_weights(checkpoint_path)
 
     def _train(self):
+        self.train_acc.reset_states()
+        self.val_acc.reset_states()
         self.train_loss.reset_states()
         self.val_loss.reset_states()
 
-        for idx, batch in enumerate(self.train_ds):
-            self.tf_train_step(batch)
+        self.train_ds.shuffle(buffer_size=1000)
+        for idx, (x,y) in enumerate(self.train_ds):
+            self.tf_train_step(x, y)
 
-        for batch in self.val_ds:
-            self.tf_val_step(batch)
+        for x,y in self.val_ds:
+            self.tf_val_step(x, y)
 
         # It is important to return tf.Tensors as numpy objects.
         return {
             "epoch": self.iteration,
-            "loss": self.train_loss.result().numpy(),
-            "val_loss": self.val_loss.result().numpy(),
+            "loss_train": self.train_loss.result().numpy(),
+            "loss_val": self.val_loss.result().numpy(),
+            "acc_train": self.train_acc.result().numpy(),
+            "acc_val": self.val_acc.result().numpy(),
         }
 
 tune.run(
