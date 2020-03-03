@@ -19,7 +19,7 @@ def bme680_node():
     pub_pressure = rospy.Publisher('env_sensor/current_pressure', String, queue_size=10)
     pub_altitude = rospy.Publisher('env_sensor/current_altitude', String, queue_size=10)
     rospy.init_node('bme680', anonymous=True)
-    rate = rospy.Rate(1)  # 10hz
+    rate = rospy.Rate(1)  # 1hz
     print('started ros node successfully!')
     while not rospy.is_shutdown():
         current_temp, current_gas, current_humidity, current_pressure, current_altitude = detect()
