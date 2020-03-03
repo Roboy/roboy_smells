@@ -4,6 +4,7 @@ import glob
 import os
 import re
 from datetime import datetime
+from pathlib import Path
 from typing import Tuple, Mapping, List
 
 import numpy as np
@@ -14,6 +15,14 @@ from .measurements import Functionalisations_t, WorkingChannels_t, DataRowsSet_t
 def convert_to_datetime(possible_date: str) -> datetime:
     # Fri Jan  3 12:19:00 2020
     return datetime.strptime(possible_date, "%a %b %d %H:%M:%S %Y")
+
+
+def load_sensor_preset(preset_file: str) -> np.ndarray:
+    localpath = Path(__file__).absolute().parent.joinpath("presets/" + preset_file)
+    if localpath.is_file():
+        return np.loadtxt(localpath, int)
+    else:
+        return np.loadtxt(preset_file, int)
 
 
 def get_sensor_spec(sensor_id: int) -> Tuple[Functionalisations_t, WorkingChannels_t]:
@@ -34,18 +43,13 @@ def get_sensor_spec(sensor_id: int) -> Tuple[Functionalisations_t, WorkingChanne
              0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
         )
     elif sensor_id == 5:
-        functionalisations = np.array(
-            [1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2,
-             3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4,
-             5, 5, 5, 5, 5, 5, 5, 5, 0, 0, 0, 0, 0, 0, 0, 0,
-             6, 6, 6, 6, 6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 7, 7]
-        )
+        functionalisations = load_sensor_preset('LasVegas.preset')
         # Channel 15, 16 & 23 disabled as it gives huge numbers (but it kinda works..?)
         failures_huge = [15, 16, 23]
         # Channel 22, 31, 27, 35, 39 are always stuck to the lower bound (347.9)
         failures_too_low = [22, 31]
         # Channels are IN SOME MEASUREMENTS stuck to the lower bound
-        failures_mid_low = [3,  4, 22, 25, 26, 27, 28, 29, 31, 35, 39, 60]
+        failures_mid_low = [3, 4, 22, 25, 26, 27, 28, 29, 31, 35, 39, 60]
         '''failures = np.array(
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
              0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1,
