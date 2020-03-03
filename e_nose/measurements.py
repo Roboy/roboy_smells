@@ -45,10 +45,6 @@ class Measurement:
     One Measurement
     """
 
-    # TODO: could this be a bug (class variable instead of object variable)?
-    cached_data: Dict[DataType, np.ndarray]
-    """ Caches data for certain evaluation types """
-
     def __init__(self, data: np.ndarray, label: str, time_stamp: str,
                  correct_channels: WorkingChannels_t, functionalisations: Functionalisations_t,
                  temperature: float = 0, gas: float = 0, humidty: float = 0,
@@ -57,11 +53,13 @@ class Measurement:
         self.ts: str = time_stamp
         self.correct_channels = correct_channels
         self.data: np.ndarray = data
+        self.logdata: np.ndarray = np.log(data)
         self.functionalisations = functionalisations
         self.correct_functionalisations: Functionalisations_t = np.array(functionalisations)[correct_channels]
         """ Functionalisations of ONLY the working channels"""
         self.reference_measurement = None
-        self.cached_data = {}
+        self.cached_data: Dict[DataType, np.ndarray] = {}
+        """ Caches data for certain evaluation types """
         self.temperature = temperature
         self.gas = gas
         self.humidity = humidty
@@ -75,17 +73,17 @@ class Measurement:
         :param force:
         :return:
         """
+        # Import here to avoid circular references...
+        from . import data_processing as dp
+
         if standardize:
             if DataType.STANDARDIZED not in self.cached_data or force:
                 if self.reference_measurement is None:
                     self.cached_data[DataType.STANDARDIZED] = \
-                        100 * (self.data[:, self.correct_channels] / (
-                                1e-15 + self.get_data_as(DataType.LAST_AVG, False, num_last=10)) - 1)
+                        dp.high_pass_logdata(self.logdata[:, self.correct_channels])
                 else:
                     self.cached_data[DataType.STANDARDIZED] = \
-                        100 * (self.data[:, self.correct_channels] / (
-                                1e-15 + self.reference_measurement.get_data_as(DataType.LAST_AVG, False,
-                                                                               num_last=10)) - 1)
+                        self.logdata[:, self.correct_channels] - np.log(self.reference_measurement.get_data_as(DataType.LAST_AVG, False, um_last=10))
 
             return self.cached_data[DataType.STANDARDIZED]
 
