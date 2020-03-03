@@ -82,7 +82,7 @@ class Measurement:
 
         data = self.logdata if log else self.data
         cache = self.cached_logdata if log else self.cached_data
-        mask = self.correct_channels if only_working else np.ones(self.data.shape[1], bool)
+        mask = self.correct_channels if only_working else np.ones(data.shape[1], bool)
 
         if standardize:
             if DataType.STANDARDIZED not in cache or force:
