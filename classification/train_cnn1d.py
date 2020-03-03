@@ -15,9 +15,12 @@ parser.add_argument(
     "--smoke-test", action="store_true", help="Finish quickly for testing")
 args, _ = parser.parse_known_args()
 
+num_triplets_train = 300
+num_triplets_val = 300
+
 def load_data():
     # Read in data
-    measurements = dl.get_measurements_from_dir(os.path.join(parent_path, 'data'))
+    measurements = dl.get_measurements_from_dir(os.path.join(parent_path, '../data'))
     ms_train, ms_val = dl.train_test_split(measurements, 0.7)
 
     train_triplets, train_labels = tu.create_triplets(ms_train, num_triplets_train)
@@ -94,35 +97,14 @@ class CNNTrainable(tune.Trainable):
         self.train_ds = tf.data.Dataset.from_tensor_slices((train_batch)).batch(batch_size)
         self.val_ds = tf.data.Dataset.from_tensor_slices((val_batch)).batch(batch_size)
 
-
-
         self.model = Model1DCNN(dilations=config["num_dilations"], filter_size=config["filter_size"])
         self.optimizer = tf.keras.optimizers.Adam(lr=config["lr"])
-
         self.train_loss = tf.keras.metrics.Mean(name="train_loss")
         self.val_loss = tf.keras.metrics.Mean(name="val_loss")
 
         @tf.function
-        def train_step(batch):
-            with tf.GradientTape() as tape:
-                predictions = self.model(batch)
-                loss = loss_object(predictions)
-            gradients = tape.gradient(loss, self.model.trainable_variables)
-            self.optimizer.apply_gradients(zip(gradients, self.model.trainable_variables))
-
-            self.train_loss(loss)
-
-        @tf.function
-        def val_step(batch):
-            predictions = self.model(batch)
-            loss = loss_object(predictions)
-
-            self.val_loss(loss)
-
-        @tf.function
         def triplet_loss(feats):
             m = 0.01
-
             diff_pos = feats[0:batch_size:3] - feats[1:batch_size:3]
             diff_pos_sq = tf.math.reduce_sum(diff_pos ** 2, axis=1)
             diff_neg = feats[0:batch_size:3] - feats[2:batch_size:3]
@@ -133,9 +115,28 @@ class CNNTrainable(tune.Trainable):
             L_pair = tf.math.reduce_sum(diff_pos_sq)
             return L_triplet + L_pair
 
+        self.loss_object = triplet_loss
+
+        @tf.function
+        def train_step(batch):
+            with tf.GradientTape() as tape:
+                predictions = self.model(batch)
+                loss = self.loss_object(predictions)
+            gradients = tape.gradient(loss, self.model.trainable_variables)
+            self.optimizer.apply_gradients(zip(gradients, self.model.trainable_variables))
+
+            self.train_loss(loss)
+
+        @tf.function
+        def val_step(batch):
+            predictions = self.model(batch)
+            loss = self.loss_object(predictions)
+
+            self.val_loss(loss)
+
+
         self.tf_train_step = train_step
         self.tf_val_step = val_step
-        self.loss_object = triplet_loss
 
     def _save(self, tmp_checkpoint_dir):
         checkpoint_path = os.path.join(tmp_checkpoint_dir, "model_weights")
