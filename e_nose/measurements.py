@@ -1,6 +1,6 @@
 import numpy as np
 from enum import Enum, auto
-from typing import Dict, Any, List, Mapping, Optional
+from typing import Dict, Any, List, Mapping, Optional, Union
 
 # Useful Datatype definitions
 
@@ -57,39 +57,57 @@ class Measurement:
         self.functionalisations = functionalisations
         self.correct_functionalisations: Functionalisations_t = np.array(functionalisations)[correct_channels]
         """ Functionalisations of ONLY the working channels"""
-        self.reference_measurement = None
+        self.reference_measurement: Union[Measurement, np.ndarray, None] = None
         self.cached_data: Dict[DataType, np.ndarray] = {}
         """ Caches data for certain evaluation types """
+        self.cached_logdata: Dict[DataType, np.ndarray] = {}
+        """ Caches logdata for certain evaluation types """
         self.temperature = temperature
         self.gas = gas
         self.humidity = humidty
         self.pressure = pressure
         self.altitude = altitude
 
-    def get_data(self, standardize: bool = True, force: bool = False) -> np.ndarray:
+    def get_data(self, standardize: bool = True, force: bool = False, log: bool = True, only_working: bool = True) -> np.ndarray:
         """
 
         :param standardize:
         :param force:
+        :param log: Logarithmic data
+        :param only_working: Only return working channels; False only guaranteed to work with standardize OFF
         :return:
         """
         # Import here to avoid circular references...
         from . import data_processing as dp
 
+        data = self.logdata if log else self.data
+        cache = self.cached_logdata if log else self.cached_data
+        mask = self.correct_channels if only_working else np.ones(self.data.shape[1], bool)
+
         if standardize:
-            if DataType.STANDARDIZED not in self.cached_data or force:
+            if DataType.STANDARDIZED not in cache or force:
                 if self.reference_measurement is None:
-                    self.cached_data[DataType.STANDARDIZED] = \
-                        dp.high_pass_logdata(self.logdata[:, self.correct_channels])
+                    if not log:
+                        print("WARNING! USING LOG HIGH PASS FOR NORMAL DATA!")
+                    cache[DataType.STANDARDIZED] = \
+                        dp.high_pass_logdata(data[:, mask])
+                elif isinstance(self.reference_measurement, Measurement):
+                    cache[DataType.STANDARDIZED] = \
+                        data[:, mask]\
+                        - self.reference_measurement.get_data_as(DataType.LAST_AVG, False, num_last=10, log=log)
+                elif isinstance(self.reference_measurement, np.ndarray):
+                    if not log:
+                        print("WARNING! USING LOG REFERENCE FOR NORMAL DATA!")
+                    cache[DataType.STANDARDIZED] = \
+                        dp.high_pass_logdata(data, init=self.reference_measurement)[:, mask]
                 else:
-                    self.cached_data[DataType.STANDARDIZED] = \
-                        self.logdata[:, self.correct_channels] - np.log(self.reference_measurement.get_data_as(DataType.LAST_AVG, False, um_last=10))
+                    print("ERROR: Invalid state of reference-measurement: "+str(type(self.reference_measurement)))
 
-            return self.cached_data[DataType.STANDARDIZED]
+            return cache[DataType.STANDARDIZED]
 
-        return self.data[:, self.correct_channels]
+        return data[:, mask]
 
-    def get_data_as(self, datatype: DataType, standardize: bool = True, force: bool = False,
+    def get_data_as(self, datatype: DataType, standardize: bool = True, force: bool = False, log: bool = True,
                     num_last: int = 10, num_samples: int = 10) \
             -> np.ndarray:
         """
@@ -97,6 +115,7 @@ class Measurement:
         :param datatype:
         :param standardize:
         :param force:
+        :param log:
         :param num_last:
         :param num_samples:
         :return:
@@ -104,34 +123,36 @@ class Measurement:
         # Import here to avoid circular references...
         from . import data_processing as dp
 
+        cache = self.cached_logdata if log else self.cached_data
+
         # having standardize is default, the non-standardized data will not be cached
-        if datatype in self.cached_data and not force and standardize:
-            return self.cached_data[datatype]
+        if datatype in cache and not force and standardize:
+            return cache[datatype]
 
         data_as: Optional[np.ndarray] = None
         if datatype is DataType.LAST_AVG:
-            data_as = np.mean(self.get_data(standardize, force)[-num_last:, :], axis=0)
+            data_as = np.mean(self.get_data(standardize, force, log=log)[-num_last:, :], axis=0)
         elif datatype is DataType.TOTAL_AVG:
-            data_as = np.mean(self.get_data(standardize, force), axis=0)
+            data_as = np.mean(self.get_data(standardize, force, log=log), axis=0)
         elif datatype is DataType.PEAK_AVG:
-            data_as = dp.get_measurement_peak_average(self.get_data(standardize, force=force))
+            data_as = dp.get_measurement_peak_average(self.get_data(standardize, force=force, log=log))
         elif datatype is DataType.GRADIENTS:
-            data_as = np.gradient(self.get_data(standardize, force), axis=1)
+            data_as = np.gradient(self.get_data(standardize, force, log=log), axis=1)
         elif datatype is DataType.GROUPED_TOTAL_AVG:
-            data_as = np.mean(self.get_data_as(DataType.GROUPED, standardize, force), axis=0)
+            data_as = np.mean(self.get_data_as(DataType.GROUPED, standardize, force, log=log), axis=0)
         elif datatype is DataType.GROUPED_PEAK_AVG:
             data_as = \
-                dp.get_measurement_peak_average(self.get_data_as(DataType.GROUPED, standardize, force), num_samples)
+                dp.get_measurement_peak_average(self.get_data_as(DataType.GROUPED, standardize, force, log=log), num_samples)
         elif datatype is DataType.GROUPED:
             data_as = \
-                dp.group_meas_data_by_functionalisation(self.get_data(standardize, force),
+                dp.group_meas_data_by_functionalisation(self.get_data(standardize, force, log=log),
                                                         self.correct_functionalisations)
 
         if standardize:
-            self.cached_data[datatype] = data_as
+            cache[datatype] = data_as
         return data_as
 
-    def get_data_extended(self, datatype: DataType, standardize: bool = True, force: bool = False,
+    def get_data_extended(self, datatype: DataType, standardize: bool = True, force: bool = False, log: bool = True,
                           num_last: int = 10, num_samples: int = 10, temperature: bool = False, gas: bool = False,
                           humidity: bool = False, pressure: bool = False, altitude: bool = False) \
             -> np.ndarray:
@@ -144,7 +165,7 @@ class Measurement:
         :param num_samples:
         :return:
         """
-        pure_data = self.get_data_as(datatype, standardize, force, num_last, num_samples)
+        pure_data = self.get_data_as(datatype, standardize, force, log, num_last, num_samples)
         if temperature:
             pure_data = np.append(pure_data, self.temperature)
         if gas:

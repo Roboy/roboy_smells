@@ -13,7 +13,8 @@ def pretty_print(data: DataRowsSet_t):
 
 
 def draw_bar_meas(measurements, datatypes: List[DataType], standardize=True, force=False, num_last=1, num_samples=1):
-    colors = ['xkcd:green', 'xkcd:blue', 'xkcd:brown', 'xkcd:yellow', 'xkcd:black']
+    colors = ['xkcd:black', 'xkcd:blue', 'xkcd:brown', 'xkcd:golden yellow', 'xkcd:emerald green',
+              'xkcd:baby blue', 'xkcd:magenta', 'xkcd:violet', 'xkcd:lightgreen']
     for measurement in measurements:
         plt.figure(figsize=(15, 6))
         groups = np.unique(measurement.correct_functionalisations)
@@ -47,7 +48,8 @@ def draw_bar_meas_direct_comp(measurements, functionalisations, datatype, standa
         print("Data type not supported (yet?)")
         return
 
-    colors = ['xkcd:green', 'xkcd:blue', 'xkcd:brown', 'xkcd:yellow', 'xkcd:black']
+    colors = ['xkcd:black', 'xkcd:blue', 'xkcd:brown', 'xkcd:golden yellow', 'xkcd:emerald green',
+              'xkcd:baby blue', 'xkcd:magenta', 'xkcd:violet', 'xkcd:lightgreen']
 
     groups = np.unique(functionalisations)
     y_pos = np.arange(len(groups))
@@ -92,7 +94,8 @@ def draw_bar_meas_direct_comp(measurements, functionalisations, datatype, standa
 
 
 def draw_meas_channel_over_time(measurement, functionalisations, standardize=True, draw_ref=True):
-    colors = ['xkcd:green', 'xkcd:blue', 'xkcd:brown', 'xkcd:yellow', 'xkcd:black']
+    colors = ['xkcd:black', 'xkcd:blue', 'xkcd:brown', 'xkcd:golden yellow', 'xkcd:emerald green',
+              'xkcd:baby blue', 'xkcd:magenta', 'xkcd:violet', 'xkcd:lightgreen']
 
     fig, ax = plt.subplots()
     data = measurement.get_data(standardize)
@@ -105,7 +108,8 @@ def draw_meas_channel_over_time(measurement, functionalisations, standardize=Tru
 
 
 def draw_meas_grad_over_time(measurement, functionalisations, standardize=True, draw_ref=True):
-    colors = ['xkcd:green', 'xkcd:blue', 'xkcd:brown', 'xkcd:yellow', 'xkcd:black']
+    colors = ['xkcd:black', 'xkcd:blue', 'xkcd:brown', 'xkcd:golden yellow', 'xkcd:emerald green',
+              'xkcd:baby blue', 'xkcd:magenta', 'xkcd:violet', 'xkcd:lightgreen']
 
     fig, ax = plt.subplots()
     data = measurement.get_data_as(DataType.GRADIENTS)

@@ -5,26 +5,63 @@ import numpy as np
 from .measurements import Measurement, DataRowsSet_t, WorkingChannels_t, Functionalisations_t
 
 
-def standardize_measurements(measurements: List[Measurement]) \
+def standardize_measurements(measurements: List[Measurement], remove_ref: bool = True) \
         -> List[Measurement]:
+    """ Sets the standardization of all measurement to the Reference Measurement before """
     last_null_meas = None
     clean_measurements = []
-    last_meas = None
 
     for measurement in measurements:
-        if last_meas is None or last_meas != measurement.label:
-            last_meas = measurement.label
-
-        if measurement.label == 'ref' or measurement.label == 'null':
+        isref = measurement.label == 'ref' or measurement.label == 'null'
+        if isref:
             last_null_meas = measurement
-        else:
+
+        measurement.reference_measurement = last_null_meas
+
+        if not isref or not remove_ref:
             if last_null_meas is None:
                 print("ERROR - NO NULL MEASUREMENT FOUND")
-                return []
-
-            measurement.reference_measurement = last_null_meas
             clean_measurements.append(measurement)
 
+    return clean_measurements
+
+
+def standardize_measurements_lowpass(measurements: List[Measurement], remove_ref: bool = True) \
+        -> List[Measurement]:
+    """ Sets the standardization of all measurement to the lowpass of all data before (needs continuous data!) """
+    clean_measurements = []
+
+    l1_filter = None
+    l1_factor = 1e-3
+
+    for measurement in measurements:
+        isref = measurement.label == 'ref' or measurement.label == 'null'
+
+        data = measurement.get_data(False, True, True, False)
+
+        # Init filter to avg of first five measurements
+        if l1_filter is None:
+            l1_filter = np.mean(data[:5], axis=0)
+
+        measurement.reference_measurement = l1_filter
+
+        for i in range(len(data)):
+            l1_filter = (l1_filter + data[i] * l1_factor) / (1.0 + l1_factor)
+
+        if not isref or not remove_ref:
+            clean_measurements.append(measurement)
+
+    return clean_measurements
+
+
+def remove_ref(measurements: List[Measurement]) -> List[Measurement]:
+    """ Removes Reference Measurements from the list """
+    clean_measurements = []
+    for measurement in measurements:
+        if measurement.label == 'ref' or measurement.label == 'null':
+            continue
+        else:
+            clean_measurements.append(measurement)
     return clean_measurements
 
 
@@ -129,9 +166,11 @@ def get_labeled_measurements(data: DataRowsSet_t, correct_channels: WorkingChann
     return measurements
 
 
-def high_pass_logdata(data: np.ndarray) -> np.ndarray:
+def high_pass_logdata(data: np.ndarray, init: Optional[np.ndarray] = None) -> np.ndarray:
     """ Filters out slow trends from logarithmic data; zeroes the avg of the first 5 samples """
-    l1_filter = np.mean(data[:5], axis=0)
+    l1_filter = np.mean(data[:3], axis=0)
+    if init is not None:
+        l1_filter = init
     l1_factor = 1e-3
     for i in range(len(data)):
         l1_filter = (l1_filter + data[i] * l1_factor) / (1.0 + l1_factor)
