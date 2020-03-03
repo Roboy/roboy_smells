@@ -28,7 +28,7 @@ def standardize_measurements(measurements: List[Measurement], remove_ref: bool =
 
 def standardize_measurements_lowpass(measurements: List[Measurement], remove_ref: bool = True) \
         -> List[Measurement]:
-    """ Sets the standardization of all measurement to the lowpass of all data before (needs continuous data!) """
+    """ Sets the standardization of all measurement to the lowpass of all LOG data before (needs continuous data!) """
     clean_measurements = []
 
     l1_filter = None
@@ -37,7 +37,7 @@ def standardize_measurements_lowpass(measurements: List[Measurement], remove_ref
     for measurement in measurements:
         isref = measurement.label == 'ref' or measurement.label == 'null'
 
-        data = measurement.get_data(False, True, True, False)
+        data = measurement.get_data(False, force=True, log=True, only_working=False)
 
         # Init filter to avg of first five measurements
         if l1_filter is None:
