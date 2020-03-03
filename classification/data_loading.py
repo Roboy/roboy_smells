@@ -12,7 +12,7 @@ def get_measurements_from_dir(directory_name='../data'):
 
     measurements = []
     for file in measurements_per_file:
-        adding = dp.standardize_measurements(measurements_per_file[file])
+        adding = dp.standardize_measurements_lowpass(measurements_per_file[file])
         if adding is not None:
             measurements.extend(adding)
 
