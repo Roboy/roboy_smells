@@ -16,7 +16,7 @@ parser.add_argument(
 args, _ = parser.parse_known_args()
 
 # LOAD FROM FILES
-measurements = get_measurements_from_dir(os.path.join(parent_path, '../data'))
+measurements = get_measurements_from_dir(os.path.join(parent_path, 'data'))
 
 class LSTMTrainable(tune.Trainable):
     def _setup(self, config):
@@ -33,7 +33,7 @@ class LSTMTrainable(tune.Trainable):
 
         # OTHER STUFF
         self.masking_value = 100.
-        classes_list = get_classes_list()
+        classes_list = get_classes_list(measurements)
         self.classes_dict = get_classes_dict(classes_list)
         self.num_classes = classes_list.size
 
@@ -101,6 +101,17 @@ class LSTMTrainable(tune.Trainable):
     def _train(self):
         import tensorflow as tf
 
+        if gpus:
+            try:
+                # Currently, memory growth needs to be the same across GPUs
+                for gpu in gpus:
+                    tf.config.experimental.set_memory_growth(gpu, True)
+                logical_gpus = tf.config.experimental.list_logical_devices('GPU')
+                print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
+            except RuntimeError as e:
+            # Memory growth must be set before GPUs have been initialized
+                    print(e)
+
         self.debugging_tool = 0
 
         self.train_loss.reset_states()
@@ -155,6 +166,10 @@ tune.run(
     verbose=1,
     name="lstm_roboy",
     num_samples=5,
+    resources_per_trial={
+        'gpu': 1,
+        'cpu': 12,
+    },
     checkpoint_freq=10,
     checkpoint_at_end=True,
     config={
