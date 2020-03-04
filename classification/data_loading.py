@@ -2,6 +2,7 @@ import numpy as np
 
 from e_nose import file_reader
 from e_nose import data_processing as dp
+from e_nose.measurements import StandardizationType
 
 
 def get_measurements_from_dir(directory_name='../data'):
@@ -12,7 +13,7 @@ def get_measurements_from_dir(directory_name='../data'):
 
     measurements = []
     for file in measurements_per_file:
-        adding = dp.standardize_measurements(measurements_per_file[file])
+        adding = dp.standardize_measurements(measurements_per_file[file], StandardizationType.LAST_REFERENCE)
         if adding is not None:
             measurements.extend(adding)
 
