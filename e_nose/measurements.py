@@ -40,6 +40,19 @@ class DataType(Enum):
         return self is self.GROUPED_TOTAL_AVG or self is self.GROUPED_PEAK_AVG
 
 
+class StandardizationType(Enum):
+    """"""
+    LAST_REFERENCE = auto()
+    """ Standardize by the avg of the last few samples of the last reference measurement before/with this measurement
+    
+        (Reference measurement themselves will be standardized by their own ending)
+    """
+    BEGINNING_AVG = auto()
+    """ Standardize by the avg value of the first few (3) samples of the same measurement """
+    LOWPASS_FILTER = auto()
+    """ Standardize by a low-pass filter over the historic data before this measurement """
+
+
 class Measurement:
     """
     One Measurement
@@ -58,6 +71,7 @@ class Measurement:
         self.correct_functionalisations: Functionalisations_t = np.array(functionalisations)[correct_channels]
         """ Functionalisations of ONLY the working channels"""
         self.reference_measurement: Union[Measurement, np.ndarray, None] = None
+        self.standardization_type: StandardizationType = StandardizationType.BEGINNING_AVG
         self.cached_data: Dict[DataType, np.ndarray] = {}
         """ Caches data for certain evaluation types """
         self.cached_logdata: Dict[DataType, np.ndarray] = {}
@@ -68,7 +82,22 @@ class Measurement:
         self.pressure = pressure
         self.altitude = altitude
 
-    def get_data(self, standardize: bool = True, force: bool = False, log: bool = True, only_working: bool = True) -> np.ndarray:
+    def set_reference(self, reference_measurement: Union['Measurement', np.ndarray, None],
+                      standardization_type: StandardizationType = StandardizationType.BEGINNING_AVG) -> ():
+        self.reference_measurement = reference_measurement
+        self.standardization_type = standardization_type
+        # Standardizaion type change invalidates the cached data
+        self.clear_cache()
+
+    def clear_cache(self):
+        self.cached_data = {}
+        self.cached_logdata = {}
+
+    def is_reference(self) -> bool:
+        return self.label in ['ref', 'null']
+
+    def get_data(self, standardize: bool = True, force: bool = False, log: bool = True,
+                 only_working: bool = True) -> np.ndarray:
         """
 
         :param standardize:
@@ -93,7 +122,7 @@ class Measurement:
                         dp.high_pass_logdata(data[:, mask])
                 elif isinstance(self.reference_measurement, Measurement):
                     cache[DataType.STANDARDIZED] = \
-                        data[:, mask]\
+                        data[:, mask] \
                         - self.reference_measurement.get_data_as(DataType.LAST_AVG, False, num_last=10, log=log)
                 elif isinstance(self.reference_measurement, np.ndarray):
                     if not log:
@@ -101,7 +130,7 @@ class Measurement:
                     cache[DataType.STANDARDIZED] = \
                         dp.high_pass_logdata(data, init=self.reference_measurement)[:, mask]
                 else:
-                    print("ERROR: Invalid state of reference-measurement: "+str(type(self.reference_measurement)))
+                    raise TypeError("ERROR: Invalid state of reference-measurement: " + str(type(self.reference_measurement)))
 
             return cache[DataType.STANDARDIZED]
 
@@ -142,7 +171,8 @@ class Measurement:
             data_as = np.mean(self.get_data_as(DataType.GROUPED, standardize, force, log=log), axis=0)
         elif datatype is DataType.GROUPED_PEAK_AVG:
             data_as = \
-                dp.get_measurement_peak_average(self.get_data_as(DataType.GROUPED, standardize, force, log=log), num_samples)
+                dp.get_measurement_peak_average(self.get_data_as(DataType.GROUPED, standardize, force, log=log),
+                                                num_samples)
         elif datatype is DataType.GROUPED:
             data_as = \
                 dp.group_meas_data_by_functionalisation(self.get_data(standardize, force, log=log),
