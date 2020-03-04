@@ -3,6 +3,29 @@ import numpy as np
 from e_nose import file_reader
 from e_nose import data_processing as dp
 from e_nose.measurements import StandardizationType
+from scipy import signal
+
+def butter_lowpass_filter(data, cutoff, fs, order):
+    nyq = 0.5 * fs
+    normal_cutoff = cutoff / nyq
+    # Get the filter coefficients
+    b, a = signal.butter(order, normal_cutoff, btype='low', analog=False)
+    y = signal.filtfilt(b, a, data)
+    return y
+
+def low_pass_mean_std_measurement(meas, sample_rate=0.5, cutoff_freq=0.02, order=2):
+    data = meas.get_data()
+    ys = np.zeros_like(data)
+    for i in range(data.shape[1]):
+        y = butter_lowpass_filter(data[:,i], cutoff_freq, sample_rate, order)
+        ys[:,i] = y
+
+    for i in range(data.shape[0]):
+        mean = np.mean(ys[i, :])
+        var = np.std(ys[i, :])
+        ys[i, :] = (ys[i, :] - mean) / var
+
+    return ys
 
 
 def get_measurements_from_dir(directory_name='../data'):
