@@ -121,9 +121,9 @@ class Measurement:
                     cache[DataType.STANDARDIZED] = \
                         dp.high_pass_logdata(data[:, mask])
                 elif isinstance(self.reference_measurement, Measurement):
+                    reference = self.reference_measurement.get_data_as(DataType.LAST_AVG, False, num_last=10, log=log)
                     cache[DataType.STANDARDIZED] = \
-                        data[:, mask] \
-                        - self.reference_measurement.get_data_as(DataType.LAST_AVG, False, num_last=10, log=log)
+                        dp.high_pass_logdata(data[:, mask], init=reference)
                 elif isinstance(self.reference_measurement, np.ndarray):
                     if not log:
                         print("WARNING! USING LOG REFERENCE FOR NORMAL DATA!")
