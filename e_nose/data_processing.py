@@ -87,6 +87,42 @@ def remove_ref(measurements: List[Measurement]) -> List[Measurement]:
     return clean_measurements
 
 
+def group_measurements_by_label(measurements: List[Measurement]) -> Dict[str, List[Measurement]]:
+    """ Groups measurements by label """
+    result = {}
+    for measurement in measurements:
+        if measurement.label not in result:
+            result[measurement.label] = []
+        result[measurement.label].append(measurement)
+    return result
+
+
+def count_measurements_by_label(measurements: List[Measurement]) -> Dict[str, int]:
+    """ Counts how many measurements of each label are in the given list """
+    result = {}
+    for measurement in measurements:
+        if measurement.label not in result:
+            result[measurement.label] = 0
+        result[measurement.label] += 1
+    return result
+
+
+def balance_measurements_by_label(measurements: List[Measurement]) -> List[Measurement]:
+    """ Makes sure that there are equal numbers of each label n the list of measurements by removing some """
+    by_label = group_measurements_by_label(measurements)
+    min_len = min([len(by_label[lab]) for lab in by_label])
+
+    print('Reducing all labels to %i measurements each to make sure they are balanced...' % min_len)
+
+    balanced_measurements = []
+
+    for i in range(min_len):
+        for lab in by_label:
+            balanced_measurements.append(by_label[lab][i])
+
+    return balanced_measurements
+
+
 def remove_broken_channels(functionalisations: Functionalisations_t, working_channels: WorkingChannels_t,
                            data: DataRowsSet_t) \
         -> Tuple[Functionalisations_t, WorkingChannels_t, DataRowsSet_t]:
