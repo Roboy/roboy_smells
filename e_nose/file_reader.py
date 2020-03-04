@@ -49,7 +49,9 @@ def get_sensor_spec(sensor_id: int) -> Tuple[Functionalisations_t, WorkingChanne
         # Channel 22, 31, 27, 35, 39 are always stuck to the lower bound (347.9)
         failures_too_low = [22, 31]
         # Channels are IN SOME MEASUREMENTS stuck to the lower bound
-        failures_mid_low = [3, 4, 22, 25, 26, 27, 28, 29, 31, 35, 39, 60]
+        failures_mid_low = [3, 4, 22, 25, 26, 27, 28, 29, 31, 35, 36, 38, 39, 60]
+        # More channels that are stuck somewhere
+        failures_more = [2,  3,  4,  5, 22, 25, 26, 27, 28, 29, 31, 35, 36, 38, 39, 56, 59, 60, 61]
         '''failures = np.array(
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
              0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1,
@@ -60,6 +62,7 @@ def get_sensor_spec(sensor_id: int) -> Tuple[Functionalisations_t, WorkingChanne
         failures[failures_huge] = True
         failures[failures_too_low] = True
         failures[failures_mid_low] = True
+        failures[failures_more] = True
     else:
         print('Unknown Sensor ID %i! No functionalisation and channel failure data available' % sensor_id)
     correct_channels = np.invert(np.array(failures).astype(bool))
@@ -101,7 +104,7 @@ def read_data_csv(file_name: str, debug=False) -> Tuple[Functionalisations_t, Wo
                         'humidity': float(row[-4]),
                         'pressure': float(row[-3]),
                         'altitude': float(row[-2]),
-                        'label': row[-1]}
+                        'label': row[-1].lower()}
             data[row[0]] = row_data
 
     # sorted(data, key=lambda x: datetime.strptime(x[1], '%a %b %d %Y'))
