@@ -9,11 +9,12 @@ from classification.util import get_classes_list, get_class, get_classes_dict, h
 model_name = "LSTMTrainable_b625122c_11_batch_size=64,dim_hidden=16,lr=0.073956,return_sequences=True_2020-03-04_19-04-41c78mu_or"
 checkpoint = 150
 
-path = '/Users/max/ray_results/lstm_roboy/' + model_name + '/checkpoint_' + str(checkpoint) + '/model_weights'
+path = './models/rnn/' + model_name + '/checkpoint_' + str(checkpoint) + '/model_weights'
 
 batch_size = 1
 sequence_length = 10
-dim = 49
+#dim = 49
+dim = 42
 input_shape = (batch_size, sequence_length, dim)
 
 masking_value = 100.

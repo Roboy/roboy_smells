@@ -17,8 +17,12 @@ args, _ = parser.parse_known_args()
 gpus = []
 
 # LOAD FROM FILES
-measurements = get_measurements_from_dir(os.path.join(parent_path, '../data'))
-measurements = hot_fix_label_issue(measurements)
+#measurements = get_measurements_from_dir(os.path.join(parent_path, '../data'))
+measurements_in_train = get_measurements_from_dir(os.path.join(parent_path, '../data'))
+measurements_in_test = get_measurements_from_dir(os.path.join(parent_path, '../data_test'))
+
+measurements_in_train = hot_fix_label_issue(measurements_in_train)
+measurements_in_test = hot_fix_label_issue(measurements_in_test)
 
 class LSTMTrainable(tune.Trainable):
     def _setup(self, config):
@@ -30,12 +34,13 @@ class LSTMTrainable(tune.Trainable):
         # INPUT SHAPE
         self.batch_size = config["batch_size"]
         self.sequence_length = 10
-        self.dim = 49
+        self.dim = 42
         self.input_shape = (self.batch_size, self.sequence_length, self.dim)
 
         # OTHER STUFF
         self.masking_value = 100.
-        self.classes_list = get_classes_list(measurements)
+        #self.classes_list = get_classes_list(measurements)
+        self.classes_list = get_classes_list(measurements_in_train)
         self.classes_dict = get_classes_dict(self.classes_list)
         self.num_classes = self.classes_list.size
         self.return_sequences = config["return_sequences"]
@@ -44,12 +49,17 @@ class LSTMTrainable(tune.Trainable):
         ####################
         # LOAD DATA
         ####################
-        self.measurements_train, self.measurements_val = train_test_split(measurements)
+        #self.measurements_train, self.measurements_val = train_test_split(measurements)
+        self.measurements_train, _ = train_test_split(measurements_in_train, split=1.)
+        _, self.measurements_val = train_test_split(measurements_in_test, split=0.)
 
         ####################
         # MODEL SETUP
         ####################
-        self.model = make_model(input_shape=self.input_shape, dim_hidden=config["dim_hidden"], num_classes=self.num_classes, masking_value=self.masking_value, return_sequences=self.return_sequences)
+        if config["dim_hidden"] == 1000:
+            self.model = make_model_deeper(input_shape=self.input_shape, num_classes=self.num_classes, masking_value=self.masking_value, return_sequences=self.return_sequences)
+        else:
+            self.model = make_model(input_shape=self.input_shape, dim_hidden=config["dim_hidden"], num_classes=self.num_classes, masking_value=self.masking_value, return_sequences=self.return_sequences)
         self.model.summary()
 
         ####################
@@ -172,12 +182,12 @@ tune.run(
     stop={"training_iteration": 5 if args.smoke_test else 150},
     verbose=1,
     name="lstm_roboy",
-    num_samples=10,
+    num_samples=8,
     checkpoint_freq=10,
     checkpoint_at_end=True,
     config={
-        "lr": tune.sample_from(lambda spec: np.random.uniform(0.0006, 0.08)),
-        "batch_size": tune.grid_search([4, 16, 32, 64]),
-        "dim_hidden": tune.grid_search([8, 10, 16]),
-        "return_sequences": tune.grid_search([True, False])
+        "lr": tune.sample_from(lambda spec: np.random.uniform(0.001, 0.08)),
+        "batch_size": tune.grid_search([32, 64]),
+        "dim_hidden": tune.grid_search([8, 10, 16, 1000]),
+        "return_sequences": tune.grid_search([True])
     })

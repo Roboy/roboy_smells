@@ -11,3 +11,8 @@ def get_class(c, class_dict):
 
 def get_classes_list(measurements):
     return np.unique([m.label for m in measurements])
+
+def hot_fix_label_issue(measurements):
+    for i in range(len(measurements)):
+        measurements[i].label = measurements[i].label.lower()
+    return measurements
