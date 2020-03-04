@@ -6,7 +6,9 @@ def make_model(input_shape, dim_hidden, num_classes, masking_value=100., return_
                                       batch_input_shape=input_shape))
     model.add(keras.layers.LSTM(dim_hidden, return_sequences=return_sequences, stateful=True))
 
+
     if return_sequences:
+        #model.add(keras.layers.TimeDistributed(keras.layers.Dense()))
         model.add(keras.layers.TimeDistributed(keras.layers.Dense(num_classes)))
     else:
         model.add(keras.layers.Dense(num_classes))

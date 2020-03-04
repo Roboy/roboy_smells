@@ -6,7 +6,7 @@ from ray import tune
 import numpy as np
 from classification.data_loading import get_measurements_from_dir, train_test_split, shuffle, get_batched_data
 from classification.lstm_model import make_model, make_model_deeper
-from classification.util import get_class, get_classes_list, get_classes_dict
+from classification.util import get_class, get_classes_list, get_classes_dict, hot_fix_label_issue
 
 # STUFF
 parent_path = os.getcwd()
@@ -14,9 +14,11 @@ parser = argparse.ArgumentParser()
 parser.add_argument(
     "--smoke-test", action="store_true", help="Finish quickly for testing")
 args, _ = parser.parse_known_args()
+gpus = []
 
 # LOAD FROM FILES
 measurements = get_measurements_from_dir(os.path.join(parent_path, '../data'))
+measurements = hot_fix_label_issue(measurements)
 
 class LSTMTrainable(tune.Trainable):
     def _setup(self, config):
@@ -37,6 +39,7 @@ class LSTMTrainable(tune.Trainable):
         self.classes_dict = get_classes_dict(self.classes_list)
         self.num_classes = self.classes_list.size
         self.return_sequences = config["return_sequences"]
+
 
         ####################
         # LOAD DATA
@@ -101,8 +104,17 @@ class LSTMTrainable(tune.Trainable):
 
     def _train(self):
         import tensorflow as tf
-
-        print('classes: ', self.classes_list)
+        print('classes_list:', self.classes_list)
+        if gpus:
+            try:
+                # Currently, memory growth needs to be the same across GPUs
+                for gpu in gpus:
+                    tf.config.experimental.set_memory_growth(gpu, True)
+                logical_gpus = tf.config.experimental.list_logical_devices('GPU')
+                print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
+            except RuntimeError as e:
+            # Memory growth must be set before GPUs have been initialized
+                    print(e)
 
         self.debugging_tool = 0
 
@@ -167,5 +179,5 @@ tune.run(
         "lr": tune.sample_from(lambda spec: np.random.uniform(0.0006, 0.08)),
         "batch_size": tune.grid_search([4, 16, 32, 64]),
         "dim_hidden": tune.grid_search([8, 10, 16]),
-        "return_sequences": tune.grid_search([False])
+        "return_sequences": tune.grid_search([True, False])
     })

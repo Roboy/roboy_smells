@@ -2,25 +2,47 @@
 from typing import List, Optional, Tuple, Mapping, Dict
 
 import numpy as np
-from .measurements import Measurement, DataRowsSet_t, WorkingChannels_t, Functionalisations_t
+from .measurements import Measurement, DataRowsSet_t, WorkingChannels_t, Functionalisations_t, StandardizationType
 
 
-def standardize_measurements(measurements: List[Measurement], remove_ref: bool = True) \
+def standardize_measurements(measurements: List[Measurement],
+                             type: StandardizationType = StandardizationType.LAST_REFERENCE,
+                             remove_ref: bool = True) -> List[Measurement]:
+    """ Sets the standardization of all measurement according to the given parameter """
+
+    if type == StandardizationType.LAST_REFERENCE:
+        return standardize_measurements_lastref(measurements, remove_ref)
+
+    elif type == StandardizationType.LOWPASS_FILTER:
+        return standardize_measurements_lowpass(measurements, remove_ref)
+
+    elif type == StandardizationType.BEGINNING_AVG:
+        clean_measurements = []
+        for measurement in measurements:
+            measurement.set_reference(None, StandardizationType.BEGINNING_AVG)
+            if not measurement.is_reference() or not remove_ref:
+                clean_measurements.append(measurement)
+        return clean_measurements
+
+    raise ValueError('Unknown standardization type')
+
+
+def standardize_measurements_lastref(measurements: List[Measurement], remove_ref: bool = True) \
         -> List[Measurement]:
     """ Sets the standardization of all measurement to the Reference Measurement before """
     last_null_meas = None
     clean_measurements = []
 
     for measurement in measurements:
-        isref = measurement.label == 'ref' or measurement.label == 'null'
+        isref = measurement.is_reference()
         if isref:
             last_null_meas = measurement
 
-        measurement.reference_measurement = last_null_meas
+        measurement.set_reference(last_null_meas, StandardizationType.LAST_REFERENCE)
 
         if not isref or not remove_ref:
             if last_null_meas is None:
-                print("ERROR - NO NULL MEASUREMENT FOUND")
+                raise ValueError("ERROR - NO NULL MEASUREMENT FOUND")
             clean_measurements.append(measurement)
 
     return clean_measurements
@@ -35,7 +57,7 @@ def standardize_measurements_lowpass(measurements: List[Measurement], remove_ref
     l1_factor = 1e-3
 
     for measurement in measurements:
-        isref = measurement.label == 'ref' or measurement.label == 'null'
+        isref = measurement.is_reference()
 
         data = measurement.get_data(False, force=True, log=True, only_working=False)
 
@@ -43,7 +65,7 @@ def standardize_measurements_lowpass(measurements: List[Measurement], remove_ref
         if l1_filter is None:
             l1_filter = np.mean(data[:5], axis=0)
 
-        measurement.reference_measurement = l1_filter
+        measurement.set_reference(l1_filter, StandardizationType.LOWPASS_FILTER)
 
         for i in range(len(data)):
             l1_filter = (l1_filter + data[i] * l1_factor) / (1.0 + l1_factor)
@@ -167,15 +189,18 @@ def get_labeled_measurements(data: DataRowsSet_t, correct_channels: WorkingChann
 
 
 def high_pass_logdata(data: np.ndarray, init: Optional[np.ndarray] = None) -> np.ndarray:
-    """ Filters out slow trends from logarithmic data; zeroes the avg of the first 5 samples """
+    """ Filters out slow trends from logarithmic data; zeroes the avg of the first 5 samples.
+     WILL NOT modify the passed array in-place"""
+
+    out_data = np.copy(data)
     l1_filter = np.mean(data[:3], axis=0)
     if init is not None:
         l1_filter = init
     l1_factor = 1e-3
     for i in range(len(data)):
         l1_filter = (l1_filter + data[i] * l1_factor) / (1.0 + l1_factor)
-        data[i] -= l1_filter
-    return data
+        out_data[i] -= l1_filter
+    return out_data
 
 
 def get_measurement_peak_average(data: np.ndarray, num_samples=10) \
