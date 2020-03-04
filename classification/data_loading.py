@@ -12,7 +12,7 @@ def get_measurements_from_dir(directory_name='../data'):
 
     measurements = []
     for file in measurements_per_file:
-        adding = dp.standardize_measurements(measurements_per_file[file])
+        adding = dp.standardize_measurements_lowpass(measurements_per_file[file])
         if adding is not None:
             measurements.extend(adding)
 
@@ -50,7 +50,7 @@ def shuffle(dataset_one, dataset_two=None):
         return dataset_one
 
 
-def get_batched_data(measurements, classes_dict, masking_value, batch_size=4, sequence_length=4, dimension=64):
+def get_batched_data(measurements, classes_dict, masking_value, batch_size=4, sequence_length=4, dimension=64, return_sequences=True):
 
     measurement_indices = np.arange(len(measurements))
     np.random.shuffle(measurement_indices)
@@ -119,6 +119,17 @@ def get_batched_data(measurements, classes_dict, masking_value, batch_size=4, se
 
     #print(batches_data_done.shape)
     #print(batches_labels_done.shape)
+
+    if return_sequences == False:
+        batches_labels_done_stateless = np.empty(shape=(batches_labels_done.shape[0],
+                                                        batches_labels_done.shape[1],
+                                                        batches_labels_done.shape[3]))
+        for i, y in enumerate(batches_labels_done):
+            batches_labels_done_stateless[i] = y[:, 0, :]
+        batches_labels_done = batches_labels_done_stateless
+    print('batches_labels_done.shape: ', batches_labels_done.shape)
+    #print('batches_labels_done: ', batches_labels_done)
+
 
     return batches_data_done, batches_labels_done, starting_indices
 

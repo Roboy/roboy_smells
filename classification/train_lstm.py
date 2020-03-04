@@ -5,7 +5,7 @@ from ray import tune
 
 import numpy as np
 from classification.data_loading import get_measurements_from_dir, train_test_split, shuffle, get_batched_data
-from classification.lstm_model import make_model
+from classification.lstm_model import make_model, make_model_deeper
 from classification.util import get_class, get_classes_list, get_classes_dict
 
 # STUFF
@@ -27,15 +27,16 @@ class LSTMTrainable(tune.Trainable):
         ####################
         # INPUT SHAPE
         self.batch_size = config["batch_size"]
-        self.sequence_length = 8
+        self.sequence_length = 10
         self.dim = 49
         self.input_shape = (self.batch_size, self.sequence_length, self.dim)
 
         # OTHER STUFF
         self.masking_value = 100.
-        classes_list = get_classes_list()
-        self.classes_dict = get_classes_dict(classes_list)
-        self.num_classes = classes_list.size
+        self.classes_list = get_classes_list(measurements)
+        self.classes_dict = get_classes_dict(self.classes_list)
+        self.num_classes = self.classes_list.size
+        self.return_sequences = config["return_sequences"]
 
         ####################
         # LOAD DATA
@@ -45,7 +46,7 @@ class LSTMTrainable(tune.Trainable):
         ####################
         # MODEL SETUP
         ####################
-        self.model = make_model(input_shape=self.input_shape, dim_hidden=config["dim_hidden"], num_classes=self.num_classes, masking_value=self.masking_value)
+        self.model = make_model(input_shape=self.input_shape, dim_hidden=config["dim_hidden"], num_classes=self.num_classes, masking_value=self.masking_value, return_sequences=self.return_sequences)
         self.model.summary()
 
         ####################
@@ -101,6 +102,8 @@ class LSTMTrainable(tune.Trainable):
     def _train(self):
         import tensorflow as tf
 
+        print('classes: ', self.classes_list)
+
         self.debugging_tool = 0
 
         self.train_loss.reset_states()
@@ -109,19 +112,22 @@ class LSTMTrainable(tune.Trainable):
         self.val_accuracy.reset_states()
 
         self.measurements_train, self.measurements_val = shuffle(self.measurements_train, self.measurements_val)
+
         data_train, labels_train, starting_indices_train = get_batched_data(self.measurements_train,
                                                                             classes_dict=self.classes_dict,
                                                                             masking_value=self.masking_value,
                                                                             batch_size=self.batch_size,
                                                                             sequence_length=self.sequence_length,
-                                                                            dimension=self.dim)
+                                                                            dimension=self.dim,
+                                                                            return_sequences=self.return_sequences)
 
         data_val, labels_val, starting_indices_val = get_batched_data(self.measurements_val,
                                                                       classes_dict=self.classes_dict,
                                                                       masking_value=self.masking_value,
                                                                       batch_size=self.batch_size,
                                                                       sequence_length=self.sequence_length,
-                                                                      dimension=self.dim)
+                                                                      dimension=self.dim,
+                                                                      return_sequences=self.return_sequences)
 
         self.train_ds = tf.data.Dataset.from_tensor_slices((tf.constant(data_train), tf.constant(labels_train)))
         self.val_ds = tf.data.Dataset.from_tensor_slices((tf.constant(data_val), tf.constant(labels_val)))
@@ -144,21 +150,22 @@ class LSTMTrainable(tune.Trainable):
             "test_loss": self.val_loss.result().numpy(),
             "train_acc": self.train_accuracy.result().numpy(),
             "test_acc": self.val_accuracy.result().numpy(),
-            "classes_dict": self.classes_dict
+            #"classes_dict": self.classes_dict
         }
 
 
 ray.init(num_cpus=2 if args.smoke_test else None)
 tune.run(
     LSTMTrainable,
-    stop={"training_iteration": 5 if args.smoke_test else 300},
+    stop={"training_iteration": 5 if args.smoke_test else 150},
     verbose=1,
     name="lstm_roboy",
-    num_samples=5,
+    num_samples=10,
     checkpoint_freq=10,
     checkpoint_at_end=True,
     config={
-        "lr": tune.sample_from(lambda spec: np.random.uniform(0.001, 0.05)),
-        "batch_size": tune.grid_search([8, 16, 32]),
-        "dim_hidden": tune.grid_search([8, 16])
+        "lr": tune.sample_from(lambda spec: np.random.uniform(0.0006, 0.08)),
+        "batch_size": tune.grid_search([4, 16, 32, 64]),
+        "dim_hidden": tune.grid_search([8, 10, 16]),
+        "return_sequences": tune.grid_search([False])
     })
