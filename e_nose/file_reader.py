@@ -104,7 +104,7 @@ def read_data_csv(file_name: str, debug=False) -> Tuple[Functionalisations_t, Wo
                         'humidity': float(row[-4]),
                         'pressure': float(row[-3]),
                         'altitude': float(row[-2]),
-                        'label': row[-1]}
+                        'label': row[-1].lower()}
             data[row[0]] = row_data
 
     # sorted(data, key=lambda x: datetime.strptime(x[1], '%a %b %d %Y'))
