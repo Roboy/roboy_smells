@@ -103,12 +103,6 @@ class OnlineReader:
             failures_mid_low = [3, 4, 22, 25, 26, 27, 28, 29, 31, 35, 36, 38, 39, 60]
             # More channels that are stuck somewhere
             failures_more = [2, 3, 4, 5, 22, 25, 26, 27, 28, 29, 31, 35, 36, 38, 39, 56, 59, 60, 61]
-            '''failures = np.array(
-                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1,
-                 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0,
-                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-            )'''
             failures = np.zeros(64, bool)
             failures[failures_huge] = True
             failures[failures_too_low] = True
