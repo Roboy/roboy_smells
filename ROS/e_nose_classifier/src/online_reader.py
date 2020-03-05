@@ -3,7 +3,7 @@ from typing import Optional, Callable
 import numpy as np
 from pathlib import Path
 from ROS.e_nose_classifier.src.EventHook import EventHook
-from ROS.e_nose_classifier.src.measurements import Measurement, StandardizationType, DataRowsSet_t, DataRow_t
+from e_nose.measurements import Measurement, StandardizationType, DataRowsSet_t, DataRow_t
 
 
 class OnlineReader:
