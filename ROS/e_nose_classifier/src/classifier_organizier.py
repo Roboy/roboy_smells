@@ -22,7 +22,10 @@ class ClassifierOrganizer:
         self.classifier = SmelLSTM(input_shape=(1,1,42), num_classes=6, hidden_dim_simple=6)
         
         #self.model_name = "LSTMTrainable_b625122c_11_batch_size=64,dim_hidden=16,lr=0.073956,return_sequences=True_2020-03-04_19-04-41c78mu_or"
-        self.model_name = 'LSTMTrainable_15750966_1740_batch_size=128,dim_hidden=6,lr=0.004831,return_sequences=True_2020-03-05_08-08-45fs4p25pg'
+        #self.model_name = 'LSTMTrainable_15750966_1740_batch_size=128,dim_hidden=6,lr=0.004831,return_sequences=True_2020-03-05_08-08-45fs4p25pg'
+
+        self.model_name = 'LSTMTrainable_9c63b3de_15_batch_size=128,data_preprocessing=high_pass,dim_hidden=6,lr=0.018191,return_sequences=True_2020-03-05_14-41-14slhxixe7'
+
 
 	#self.classifier.summary()
         #self.classifier.load_weights(self.model_name, checkpoint=200, path='classification/models/rnn/')
