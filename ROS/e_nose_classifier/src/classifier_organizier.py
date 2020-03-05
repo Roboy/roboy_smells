@@ -15,12 +15,14 @@ class ClassifierOrganizer:
         self.pub = eNoseClassificationPublisher()
         self.pub_test = eNoseClassificationTestPublisher()
         self.sub = eNoseSubscriber()
-        self.online = OnlineReader(5)
+        working_channels = [0, 1, 2, 3, 4, 5, 6, 7, 22, 24, 25, 26, 27, 28, 29, 30, 31, 35, 36, 37, 38, 39, 56, 57, 58,
+                            59, 60, 61, 62]
+        self.online = OnlineReader(5, override_working_channels=working_channels)
         self.from_sample = 0
         self.sub.onUpdate += self.gotNewSample
         self.online.invoke_callback += self.gatheredData
-        self.classifier = SmelLSTM(input_shape=(1,1,42), num_classes=6, hidden_dim_simple=6)
-        
+        self.classifier = SmelLSTM(input_shape=(1, 1, 42), num_classes=6, hidden_dim_simple=6)
+
         #self.model_name = "LSTMTrainable_b625122c_11_batch_size=64,dim_hidden=16,lr=0.073956,return_sequences=True_2020-03-04_19-04-41c78mu_or"
         self.model_name = 'LSTMTrainable_15750966_1740_batch_size=128,dim_hidden=6,lr=0.004831,return_sequences=True_2020-03-05_08-08-45fs4p25pg'
 
@@ -32,7 +34,7 @@ class ClassifierOrganizer:
         try:
             while True:
                 var = input("Please enter something: ")
-                print('restarting classification',var)
+                print('restarting classification', var)
                 self.from_sample = self.online.current_length
                 self.online.set_trigger_in(9)
                 if var.lower() == 'q':
