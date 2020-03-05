@@ -70,7 +70,7 @@ class LSTMTrainable(tune.Trainable):
         ####################
         # LOSS DEFINITION
         ####################
-        self.loss_object = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+        self.loss_object = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True, reduction=tf.keras.losses.Reduction.NONE)
         self.train_loss = tf.keras.metrics.Mean(name="train_loss")
         self.val_loss = tf.keras.metrics.Mean(name="val_loss")
         self.train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(
@@ -79,14 +79,20 @@ class LSTMTrainable(tune.Trainable):
             name="val_accuracy")
 
         @tf.function
-        def train_step(X, y):
+        def compute_masked_loss(y_true, y_pred, mask):
+            loss = self.loss_object(y_true=y_true, y_pred=y_pred)
+            masked_loss = tf.reduce_mean(tf.boolean_mask(loss, mask))
+            return masked_loss
+
+        @tf.function
+        def train_step(X, y, mask):
             with tf.GradientTape() as tape:
                 y_pred = self.model(X, training=True)
-                loss_value = self.loss_object(y_true=y, y_pred=y_pred)
+                loss_value = compute_masked_loss(y_true=y, y_pred=y_pred, mask=mask)
             grads = tape.gradient(loss_value, self.model.trainable_variables)
             self.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
             self.train_loss(loss_value)
-            self.train_accuracy(y, y_pred)
+            self.train_accuracy(y, y_pred, mask)
             #print('class_dict: ', self.classes_dict)
             #print('y_gt: ')
             #print(y.numpy())
@@ -94,11 +100,11 @@ class LSTMTrainable(tune.Trainable):
             #print(np.argmax(y_pred.numpy(), axis=-1))
 
         @tf.function
-        def val_step(X, y):
+        def val_step(X, y, mask):
             y_pred = self.model(X, training=False)
-            loss_value = self.loss_object(y_true=y, y_pred=y_pred)
+            loss_value = compute_masked_loss(y_true=y, y_pred=y_pred, mask=mask)
             self.val_loss(loss_value)
-            self.val_accuracy(y, y_pred)
+            self.val_accuracy(y, y_pred, mask)
 
         self.tf_train_step = train_step
         self.tf_val_step = val_step
@@ -158,12 +164,14 @@ class LSTMTrainable(tune.Trainable):
             if idx in starting_indices_train:
                 self.model.reset_states()
                 #print('reset', idx)
-            self.tf_train_step(X, y)
+            mask = self.model.layers[0](X)._keras_mask
+            self.tf_train_step(X, y, mask)
 
         for idx, (X, y) in enumerate(self.val_ds):
             if idx in starting_indices_val:
                 self.model.reset_states()
-            self.tf_val_step(X, y)
+            mask = self.model.layers[0](X)._keras_mask
+            self.tf_val_step(X, y, mask)
 
         # It is important to return tf.Tensors as numpy objects.
         return {
@@ -182,12 +190,12 @@ tune.run(
     stop={"training_iteration": 5 if args.smoke_test else 150},
     verbose=1,
     name="lstm_roboy",
-    num_samples=8,
+    num_samples=5,
     checkpoint_freq=10,
     checkpoint_at_end=True,
     config={
         "lr": tune.sample_from(lambda spec: np.random.uniform(0.001, 0.08)),
-        "batch_size": tune.grid_search([32, 64]),
-        "dim_hidden": tune.grid_search([8, 10, 16, 1000]),
+        "batch_size": tune.grid_search([4, 200]),
+        "dim_hidden": tune.grid_search([8]),
         "return_sequences": tune.grid_search([True])
     })

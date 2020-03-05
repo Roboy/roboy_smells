@@ -25,8 +25,6 @@ def standardize_measurements(measurements: List[Measurement],
                 clean_measurements.append(measurement)
         return clean_measurements
 
-    elif type == StandardizationType.FULL_PREPROCESSING:
-        return standardize_measurements_lowpass(measurements, remove_ref)
 
     raise ValueError('Unknown standardization type')
 
