@@ -8,6 +8,8 @@ from classification.data_loading import get_measurements_from_dir, train_test_sp
 from classification.lstm_model import make_model, make_model_deeper
 from classification.util import get_class, get_classes_list, get_classes_dict, hot_fix_label_issue
 
+from e_nose.measurements import DataType
+
 # STUFF
 parent_path = os.getcwd()
 parser = argparse.ArgumentParser()
@@ -18,8 +20,8 @@ gpus = []
 
 # LOAD FROM FILES
 #measurements = get_measurements_from_dir(os.path.join(parent_path, '../data'))
-measurements_in_train = get_measurements_from_dir(os.path.join(parent_path, '../data'))
-measurements_in_test = get_measurements_from_dir(os.path.join(parent_path, '../data_test'))
+measurements_in_train = get_measurements_from_dir(os.path.join(parent_path, 'data_train'))
+measurements_in_test = get_measurements_from_dir(os.path.join(parent_path, 'data_test'))
 
 measurements_in_train = hot_fix_label_issue(measurements_in_train)
 measurements_in_test = hot_fix_label_issue(measurements_in_test)
@@ -52,6 +54,10 @@ class LSTMTrainable(tune.Trainable):
         #self.measurements_train, self.measurements_val = train_test_split(measurements)
         self.measurements_train, _ = train_test_split(measurements_in_train, split=1.)
         _, self.measurements_val = train_test_split(measurements_in_test, split=0.)
+        if config["data_preprocessing"] is "full":
+            self.data_type = DataType.FULL
+        else:
+            self.data_type = DataType.HIGH_PASS
 
         ####################
         # MODEL SETUP
@@ -114,17 +120,6 @@ class LSTMTrainable(tune.Trainable):
 
     def _train(self):
         import tensorflow as tf
-        print('classes_list:', self.classes_list)
-        if gpus:
-            try:
-                # Currently, memory growth needs to be the same across GPUs
-                for gpu in gpus:
-                    tf.config.experimental.set_memory_growth(gpu, True)
-                logical_gpus = tf.config.experimental.list_logical_devices('GPU')
-                print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
-            except RuntimeError as e:
-            # Memory growth must be set before GPUs have been initialized
-                    print(e)
 
         self.debugging_tool = 0
 
@@ -138,6 +133,7 @@ class LSTMTrainable(tune.Trainable):
         data_train, labels_train, starting_indices_train = get_batched_data(self.measurements_train,
                                                                             classes_dict=self.classes_dict,
                                                                             masking_value=self.masking_value,
+                                                                            data_type=self.data_type,
                                                                             batch_size=self.batch_size,
                                                                             sequence_length=self.sequence_length,
                                                                             dimension=self.dim,
@@ -146,6 +142,7 @@ class LSTMTrainable(tune.Trainable):
         data_val, labels_val, starting_indices_val = get_batched_data(self.measurements_val,
                                                                       classes_dict=self.classes_dict,
                                                                       masking_value=self.masking_value,
+                                                                      data_type=self.data_type,
                                                                       batch_size=self.batch_size,
                                                                       sequence_length=self.sequence_length,
                                                                       dimension=self.dim,
@@ -176,18 +173,19 @@ class LSTMTrainable(tune.Trainable):
         }
 
 
-ray.init(num_cpus=2 if args.smoke_test else None)
+ray.init(num_cpus=12 if args.smoke_test else None)
 tune.run(
     LSTMTrainable,
-    stop={"training_iteration": 5 if args.smoke_test else 150},
+    stop={"training_iteration": 5 if args.smoke_test else 200},
     verbose=1,
     name="lstm_roboy",
-    num_samples=8,
-    checkpoint_freq=10,
+    num_samples=5,
+    checkpoint_freq=50,
     checkpoint_at_end=True,
     config={
-        "lr": tune.sample_from(lambda spec: np.random.uniform(0.001, 0.08)),
-        "batch_size": tune.grid_search([32, 64]),
-        "dim_hidden": tune.grid_search([8, 10, 16, 1000]),
-        "return_sequences": tune.grid_search([True])
+        "lr": tune.sample_from(lambda spec: np.random.uniform(0.0001, 0.1)),
+        "batch_size": tune.grid_search([64, 128]),
+        "dim_hidden": tune.grid_search([6, 8, 1000]),
+        "return_sequences": tune.grid_search([True]),
+        "data_preprocessing": tune.grid_search(["full", "high_pass"])
     })

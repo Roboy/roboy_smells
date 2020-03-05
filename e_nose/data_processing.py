@@ -306,10 +306,10 @@ def low_pass_mean_std_measurement(data, sample_rate=0.5, cutoff_freq=0.02, order
         y = butter_lowpass_filter(data[:, i], cutoff_freq, sample_rate, order)
         ys[:, i] = y
 
-    for i in range(data.shape[0]):
-        mean = np.mean(ys[i, :])
-        var = np.std(ys[i, :])
-        ys[i, :] = (ys[i, :] - mean) / var
+    #for i in range(data.shape[0]):
+        #mean = np.mean(ys[i, :])
+        #var = np.std(ys[i, :])
+        #ys[i, :] = (ys[i, :] - mean) / var
 
     return ys
 
