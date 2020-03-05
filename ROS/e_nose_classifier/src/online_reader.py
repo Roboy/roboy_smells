@@ -65,7 +65,7 @@ class OnlineReader:
 
     def set_trigger_at(self, callback: Callable, at: int = 50):
         """ Sets a trigger to call the given callback function at the given sample-count """
-        self.invoke_callback = callable
+        self.invoke_callback = staticmethod(callable)
         self.invoke_at = at
 
     def get_since_n_as_measurement(self, n):
