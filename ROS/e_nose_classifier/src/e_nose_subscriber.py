@@ -23,9 +23,6 @@ class eNoseSubscriber:
         rospy.Subscriber("enose_sensordata", e_nose_raw, self.callback)
         print('started e_nose e_nose_sensor_raw_listener successfully')
 
-        # spin() simply keeps python from exiting until this node is stopped
-        rospy.spin()
-
 
 if __name__ == '__main__':
     try:

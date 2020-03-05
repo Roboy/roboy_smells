@@ -11,7 +11,6 @@ class eNoseClassificationPublisher():
         self.pub_classifier = rospy.Publisher('e_nose_classification', String, queue_size=10)
         rospy.init_node('e_nose_classifier_publish', anonymous=False)
         print('ros e_nose classification node started successfully')
-        rospy.spin()
 
     def send_classification(self, classified: String):
         if not rospy.is_shutdown():
