@@ -2,7 +2,7 @@ from typing import Optional, Callable
 
 import numpy as np
 from pathlib import Path
-from measurements import Measurement, StandardizationType, DataRowsSet_t, DataRow_t
+from ROS.e_nose_classifier.src.measurements import Measurement, StandardizationType, DataRowsSet_t, DataRow_t
 
 
 class OnlineReader:

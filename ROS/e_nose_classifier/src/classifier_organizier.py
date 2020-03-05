@@ -1,9 +1,9 @@
-from e_nose_classification_publisher import eNoseClassificationPublisher
-from e_nose_classification_test import eNoseClassificationTestPublisher
-from e_nose_subscriber import eNoseSubscriber
-from online_reader import OnlineReader
+from ROS.e_nose_classifier.src.e_nose_classification_publisher import eNoseClassificationPublisher
+from ROS.e_nose_classifier.src.e_nose_classification_test import eNoseClassificationTestPublisher
+from ROS.e_nose_classifier.src.e_nose_subscriber import eNoseSubscriber
+from ROS.e_nose_classifier.src.online_reader import OnlineReader
 from classification.lstm_model import SmelLSTM
-from e_nose.measurements import DataType
+from ROS.e_nose_classifier.src.measurements import DataType
 import keyboard  # using module keyboard
 
 

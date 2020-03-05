@@ -40,14 +40,13 @@ config = {
         "fg": 'white'
     }
 }
-classes_list = ["none", "red_wine", "coffee", "isopropanol", "orange_juice", "raisin", "vodka"]
 
 root = tk.Tk()
 f = tk.Frame(root, bg="#891610", width=root.winfo_screenwidth(), height=root.winfo_screenheight())
 w = tk.Label(root, text="Red Wine", bg='#891610', fg='white', font=("Helvetica", 64))
 
 def callback(data):
-    c = config[classes_list[data.data]]
+    c = config[data.data]
     w.config(text=c['text'], fg=c['fg'], bg=c['bg'])
     f.config(bg=c['bg'])
 
@@ -59,7 +58,7 @@ def listener():
     # run simultaneously.
     rospy.init_node('demo_gui', anonymous=True)
 
-    rospy.Subscriber("chatter", String, callback)
+    rospy.Subscriber("classification", String, callback)
 
 if __name__ == '__main__':
     class FullScreenApp(object):
@@ -81,8 +80,8 @@ if __name__ == '__main__':
     f.update()
     w.place(x=root.winfo_screenwidth()/2, y=root.winfo_screenheight()/2, anchor="center")
     app = FullScreenApp(root)
-
-    root.mainloop()
+    
     listener()
+    root.mainloop()
 
 

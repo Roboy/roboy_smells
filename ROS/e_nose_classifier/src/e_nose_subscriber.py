@@ -3,7 +3,7 @@
 import rospy
 from sklearn.externals import joblib
 from e_nose_raw_publisher.msg import e_nose_raw
-from EventHook import EventHook
+from ROS.e_nose_classifier.src.EventHook import EventHook
 
 
 class eNoseSubscriber:
