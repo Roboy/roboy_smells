@@ -59,14 +59,12 @@ class OnlineReader:
             self.invoke_at = 99999999999
             self.invoke_callback()
 
-    def set_trigger_in(self, callback: Callable, in_n: int = 50):
+    def set_trigger_in(self, in_n: int = 50):
         """ Sets a trigger to call the given callback function in in_n steps """
-        self.set_trigger_at(callback, self.current_length + in_n)
+        self.set_trigger_at(self.current_length + in_n)
 
-    def set_trigger_at(self, callback: Callable, at: int = 50):
+    def set_trigger_at(self, at: int = 50):
         """ Sets a trigger to call the given callback function at the given sample-count """
-        self.invoke_callback.clear()
-        self.invoke_callback += callable
         self.invoke_at = at
 
     def get_since_n_as_measurement(self, n):

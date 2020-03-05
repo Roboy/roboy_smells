@@ -19,6 +19,7 @@ class ClassifierOrganizer:
         self.online = OnlineReader(5)
         self.from_sample = 0
         self.sub.onUpdate += self.gotNewSample
+        self.online.invoke_callback += self.gatheredData
         self.classifier = SmelLSTM(input_shape=(1,1,42), num_classes=6, hidden_dim_simple=6, data_type=DataType.FULL)
         self.model_name = 'LSTMTrainable_9bbda05c_13_batch_size=128,data_preprocessing=full,dim_hidden=6,lr=0.0070389,return_sequences=True_2020-03-05_14-41-03jgrcr7l1'
         self.classifier.load_weights(self.model_name, checkpoint=200, path='classification/models/rnn/')
@@ -30,7 +31,7 @@ class ClassifierOrganizer:
                 var = input("Please enter something: ")
                 print('restarting classification',var)
                 self.from_sample = self.online.current_length
-                self.online.set_trigger_in(self.gatheredData, 5)
+                self.online.set_trigger_in(5)
                 if var.lower() == 'q':
                     break
         except KeyboardInterrupt:
@@ -42,7 +43,7 @@ class ClassifierOrganizer:
         prediction = self.classifier.predict_live(data)
         print('prediction: ', prediction)
         self.pub_test.send_classification(prediction)
-        self.online.set_trigger_in(self.gatheredData, 2)
+        self.online.set_trigger_in(2)
 
     def gotNewSample(self):
         self.online.add_sample(self.sub.sensorValues)
