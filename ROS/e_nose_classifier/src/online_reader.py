@@ -51,7 +51,8 @@ class OnlineReader:
         self.current_length += 1
         if self.current_length > self.invoke_at:
             self.invoke_at = 99999999999
-            self.invoke_callback()
+            if self.invoke_callback is not None:
+                self.invoke_callback()
 
     def set_trigger_in(self, callback: Callable, in_n: int = 50):
         """ Sets a trigger to call the given callback function in in_n steps """
