@@ -8,8 +8,10 @@ from std_msgs.msg import String
 
 class e_nose_classification_publisher():
     def __init__(self):
-        self.pub_classifier = rospy.Publisher('env_sensor', String)
-        rospy.init_node('e_nose_classifier', anonymous=False)
+        self.pub_classifier = rospy.Publisher('e_nose_classification', String, queue_size=10)
+        rospy.init_node('e_nose_classifier_publish', anonymous=False)
+        print('ros e_nose classification node started successfully')
+        rospy.spin()
 
     def send_classification(self, classified: str):
         if not rospy.is_shutdown():
