@@ -73,7 +73,6 @@ class SmelLSTM:
         self.model.load_weights(path_to_model)
 
     def predict_live(self, measurement):
-        # batch size has to be 1
         data = measurement.get_data_as(self.data_type)
         self.model.reset_states()
         sample = np.empty(shape=self.input_shape)
