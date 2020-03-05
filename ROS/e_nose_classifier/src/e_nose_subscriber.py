@@ -8,8 +8,8 @@ from ROS.e_nose_classifier.src.EventHook import EventHook
 
 class eNoseSubscriber:
     def __init__(self):
-        self.listener()
         self.onUpdate: EventHook = EventHook()
+        self.listener()
         self.sensorValues = [0.0] * 64
 
     def callback(self, data):
