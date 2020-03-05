@@ -74,6 +74,7 @@ class SmelLSTM:
 
     def predict_live(self, measurement):
         data = measurement.get_data_as(self.data_type)
+        print(data.shape)
         self.model.reset_states()
         sample = np.empty(shape=self.input_shape)
         for d in range(data.shape[0]):
