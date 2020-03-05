@@ -4,6 +4,7 @@ from ROS.e_nose_classifier.src.e_nose_subscriber import eNoseSubscriber
 from ROS.e_nose_classifier.src.online_reader import OnlineReader
 from classification.lstm_model import SmelLSTM
 from e_nose.measurements import DataType
+import numpy as np
 import rospy
 
 
@@ -15,8 +16,10 @@ class ClassifierOrganizer:
         self.pub = eNoseClassificationPublisher()
         self.pub_test = eNoseClassificationTestPublisher()
         self.sub = eNoseSubscriber()
-        working_channels = [0, 1, 2, 3, 4, 5, 6, 7, 22, 24, 25, 26, 27, 28, 29, 30, 31, 35, 36, 37, 38, 39, 56, 57, 58,
+        failing_channels = [0, 1, 2, 3, 4, 5, 6, 7, 22, 24, 25, 26, 27, 28, 29, 30, 31, 35, 36, 37, 38, 39, 56, 57, 58,
                             59, 60, 61, 62]
+        working_channels = np.ones(64, bool)
+        working_channels[failing_channels] = False
         self.online = OnlineReader(5, override_working_channels=working_channels)
         self.from_sample = 0
         self.sub.onUpdate += self.gotNewSample
