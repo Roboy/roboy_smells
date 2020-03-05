@@ -125,6 +125,49 @@ def balance_measurements_by_label(measurements: List[Measurement]) -> List[Measu
     return balanced_measurements
 
 
+BROKEN_THRESHOLD: float = 350.0
+
+
+def find_broken_channels(functionalisations: Functionalisations_t, data: DataRowsSet_t, debug: bool = True) -> WorkingChannels_t:
+    failure_bits = np.zeros((len(functionalisations)), bool)
+    for measurement in data:
+        fail = np.array(data[measurement]['channels']) < BROKEN_THRESHOLD
+        failure_bits[fail] = True
+
+    if debug:
+        fail_list = np.where(failure_bits)[0]
+        print('Found %i failing channels:' % len(fail_list))
+        print(str(fail_list))
+
+    working_channels = np.invert(np.array(failure_bits).astype(bool))
+    return working_channels
+
+
+def find_broken_channels_multi_files(functionalisations: Functionalisations_t,
+                                     all_data: Dict[str, DataRowsSet_t], debug: bool = True) -> WorkingChannels_t:
+    failure_bits = np.zeros((len(functionalisations)), bool)
+    for file in all_data:
+        file_failure_bits = np.zeros((len(functionalisations)), bool)
+        for measurement in all_data[file]:
+            fail = np.array(all_data[file][measurement]['channels']) < BROKEN_THRESHOLD
+            failure_bits[fail] = True
+            file_failure_bits[fail] = True
+        if debug:
+            fail_list = np.where(file_failure_bits)[0]
+            print('File %s:' % file)
+            print('Found %i failing channels:' % len(fail_list))
+            print(str(fail_list))
+
+    if debug:
+        fail_list = np.where(failure_bits)[0]
+        print('----- TOTAL -----')
+        print('Found %i failing channels:' % len(fail_list))
+        print(str(fail_list))
+
+    working_channels = np.invert(np.array(failure_bits).astype(bool))
+    return working_channels
+
+
 def remove_broken_channels(functionalisations: Functionalisations_t, working_channels: WorkingChannels_t,
                            data: DataRowsSet_t) \
         -> Tuple[Functionalisations_t, WorkingChannels_t, DataRowsSet_t]:
