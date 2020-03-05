@@ -3,7 +3,7 @@
 
 import time
 import rospy
-from e_nose.msg import e_nose_raw
+from e_nose_raw_publisher.msg import e_nose_raw
 from e_nose_connector import eNoseConnector
 
 

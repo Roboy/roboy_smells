@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 # license removed for brevity
 import rospy
-from sklearn.externals import joblib
-from e_nose.msg import e_nose_raw
+from e_nose_classifier.msg import e_nose_raw
 
 
 

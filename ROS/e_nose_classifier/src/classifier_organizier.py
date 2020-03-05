@@ -1,7 +1,7 @@
-from .e_nose_classification_publisher import eNoseClassificationPublisher
-from .e_nose_classification_test import eNoseClassificationTestPublisher
-from .e_nose_subscriber import eNoseSubscriber
-from .online_reader import OnlineReader
+from e_nose_classification_publisher import eNoseClassificationPublisher
+from e_nose_classification_test import eNoseClassificationTestPublisher
+from e_nose_subscriber import eNoseSubscriber
+from online_reader import OnlineReader
 from classification.lstm_model import SmelLSTM
 from e_nose.measurements import DataType
 import keyboard  # using module keyboard
