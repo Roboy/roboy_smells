@@ -13,14 +13,14 @@ class e_nose_classification_publisher():
         print('ros e_nose classification node started successfully')
         rospy.spin()
 
-    def send_classification(self, classified: str):
+    def send_classification(self, classified: String):
         if not rospy.is_shutdown():
             text = str('Hey I smelled: ' + classified)
             self.pub_classifier.publish(self.get_json_text_message(31, text))
         else:
             print('no ROS connection')
 
-    def get_json_text_message(id, text):
+    def get_json_text_message(id: int, text: String):
         sensordata_json = {
             "id": id,
             "textMessage": text,

@@ -10,9 +10,9 @@ class e_nose_classification_test_publisher():
         print('ros e_nose classification test node started successfully')
         rospy.spin()
 
-    def send_classification(self, classified: str):
+    def send_classification(self, classified: String):
         if not rospy.is_shutdown():
-            self.pub_classifier.publish(str)
+            self.pub_classifier.publish(classified)
         else:
             print('no ROS connection')
 
