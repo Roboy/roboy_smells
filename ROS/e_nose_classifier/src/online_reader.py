@@ -63,6 +63,9 @@ class OnlineReader:
         self.invoke_callback = callable
         self.invoke_at = at
 
+    def get_since_n_as_measurement(self, n):
+        return self.get_last_n_as_measurement(self.current_length-n)
+
     def get_last_n_as_measurement(self, n=300):
         """
         Returns a measurement object for the last n data samples with the reference set to the lowpass-filter of the
