@@ -11,23 +11,30 @@ import adafruit_bme680 as adabme
 bme680 = None
 
 
-
 def bme680_node():
-    pub_temp = rospy.Publisher('env_sensor/current_temp', String, queue_size=10)
-    pub_gas = rospy.Publisher('env_sensor/current_gas', String, queue_size=10)
-    pub_humidity = rospy.Publisher('env_sensor/current_humidity', String, queue_size=10)
-    pub_pressure = rospy.Publisher('env_sensor/current_pressure', String, queue_size=10)
-    pub_altitude = rospy.Publisher('env_sensor/current_altitude', String, queue_size=10)
-    rospy.init_node('bme680', anonymous=True)
+    send_warning = False
+    pub_temp = rospy.Publisher('env_sensor', String)
+    pub_temp_warn = rospy.Publisher('env_sensor', String, queue_size=10)
+    pub_gas = rospy.Publisher('env_sensor', String, queue_size=10)
+    pub_humidity = rospy.Publisher('env_sensor', String, queue_size=10)
+    pub_pressure = rospy.Publisher('env_sensor', String, queue_size=10)
+    pub_altitude = rospy.Publisher('env_sensor', String, queue_size=10)
+    rospy.init_node('bme680', anonymous=False)
     rate = rospy.Rate(1)  # 1hz
     print('started ros node successfully!')
     while not rospy.is_shutdown():
         current_temp, current_gas, current_humidity, current_pressure, current_altitude = detect()
-        pub_temp.publish(get_json_message(1, "Graph", "Temperature", 1, 0xFFFFFF, current_temp, time.time()))
-        pub_gas.publish(get_json_message(2, "Graph", "Gas", 2, 0xFFFFFF, current_gas, time.time()))
-        pub_humidity.publish(get_json_message(3, "Graph", "Humidity", 3, 0xFFFFFF, current_humidity, time.time()))
-        pub_pressure.publish(get_json_message(4, "Graph", "Pressure", 4, 0xFFFFFF, current_pressure, time.time()))
-        pub_altitude.publish(get_json_message(5, "Graph", "Altitude", 5, 0xFFFFFF, current_altitude, time.time()))
+        pub_temp.publish(get_json_message(1, current_temp, time.time()))
+        if current_temp > 40 and not send_warning:
+            send_warning = True
+            pub_temp_warn.publish(
+                get_json_toastr_message(37, str("WARNING: TEMPERATURE is high: ", current_temp), [255, 0, 0, 255]))
+        elif current_temp < 35:
+            send_warning = False
+        # pub_gas.publish(get_json_message(2, current_gas, time.time()))
+        pub_humidity.publish(get_json_message(38, current_humidity, time.time()))
+        # pub_pressure.publish(get_json_message(4, current_pressure, time.time()))
+        # pub_altitude.publish(get_json_message(5, current_altitude, time.time()))
         rate.sleep()
 
 
@@ -42,7 +49,7 @@ def detect():
         return temp, gas, humidity, pressure, altitude
     except:
         print('error in ros node, lost connection to bme680 sensor')
-        return 0,0,0,0,0
+        return 0, 0, 0, 0, 0
 
 
 def init():
@@ -52,15 +59,21 @@ def init():
     bme680.sea_level_pressure = 953.25
 
 
-def get_json_message(id, type, title, position, color, value, timestamp):
+def get_json_message(id, value, timestamp):
     sensordata_json = {
         "id": id,
-        "type": type,
-        "title": title,
-        "position": position,
-        "color": color,
-        "datapoint": value,
-        "timestamp": timestamp
+        "graphDatapoint": value,
+        "graphDatapointTime": timestamp
+    }
+    return json.dumps(sensordata_json)
+
+
+def get_json_toastr_message(id, value, color):
+    sensordata_json = {
+        "id": id,
+        "toastrMessage": value,
+        "toastrColor": color
+
     }
     return json.dumps(sensordata_json)
 
