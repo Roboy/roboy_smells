@@ -3,9 +3,7 @@
 import rospy
 from sklearn.externals import joblib
 from e_nose.msg import e_nose_raw
-from online_reader import OnlineReader
-from measurements import DataType
-from sklearn.neighbors import KNeighborsClassifier
+
 
 
 class eNoseSubscriber:
@@ -16,7 +14,7 @@ class eNoseSubscriber:
 
     def callback(self, data):
         print(rospy.get_caller_id() + "I heard %s", data.measurement_time)
-        self.reader.add_sample(data.sensordata)
+
 
     def listener(self):
         rospy.init_node('e_nose_sensor_raw_listener', anonymous=False)

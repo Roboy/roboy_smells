@@ -24,9 +24,10 @@ class OnlineReader:
         self.log_lowpass_buffer = np.empty((max_history_length, 64))
         """ log_lowpass data buffer that contains empty rows for all data that might come in one day """
         self.current_length = 0
+        self.invoke_at = 99999999999
         """ current length of the data buffer """
         self.log_lowpass_current = None
-        self.max_history_length= max_history_length
+        self.max_history_length = max_history_length
         self.standardization = standardization
 
         self.functionalisations, self.working_channels = self.get_sensor_spec(sensor_id)
@@ -45,6 +46,12 @@ class OnlineReader:
         self.log_lowpass_buffer[self.current_length] = self.log_lowpass_current
 
         self.current_length += 1
+        if self.current_length > self.invoke_at:
+            self.invoke_at = 99999999999
+            #TODO:
+
+    def set_Breakpoint(self):
+        self.invoke_at = self.current_length + 50
 
     def get_last_n_as_measurement(self, n=300):
         """
@@ -76,7 +83,7 @@ class OnlineReader:
 
         return measurement
 
-    def get_sensor_spec(self,sensor_id: int):
+    def get_sensor_spec(self, sensor_id: int):
         functionalisations = np.array([])
         failures = np.array([])
 
@@ -115,8 +122,7 @@ class OnlineReader:
 
         return functionalisations, correct_channels
 
-
-    def load_sensor_preset(self,preset_file):
+    def load_sensor_preset(self, preset_file):
         localpath = Path(__file__).absolute().parent.joinpath("presets/" + preset_file)
         if localpath.is_file():
             return np.loadtxt(localpath, int)

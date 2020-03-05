@@ -3,7 +3,7 @@ import rospy
 from std_msgs.msg import String
 
 
-class e_nose_classification_test_publisher():
+class eNoseClassificationTestPublisher():
     def __init__(self):
         self.pub_classifier = rospy.Publisher('e_nose_classification', String, queue_size=10)
         rospy.init_node('e_nose_classifier_test', anonymous=False)
@@ -21,6 +21,6 @@ class e_nose_classification_test_publisher():
 
 if __name__ == '__main__':
     try:
-        encp = e_nose_classification_test_publisher()
+        encp = eNoseClassificationTestPublisher()
     except rospy.ROSInterruptException:
         pass
