@@ -2,6 +2,7 @@ from typing import Optional, Callable
 
 import numpy as np
 from pathlib import Path
+from ROS.e_nose_classifier.src.EventHook import EventHook
 from ROS.e_nose_classifier.src.measurements import Measurement, StandardizationType, DataRowsSet_t, DataRow_t
 
 
@@ -27,7 +28,7 @@ class OnlineReader:
         self.log_lowpass_buffer = np.empty((max_history_length, 64))
         """ log_lowpass data buffer that contains empty rows for all data that might come in one day """
         self.current_length = 0
-        self.invoke_callback: Optional[Callable] = None
+        self.invoke_callback: EventHook = EventHook()
         self.invoke_at = 99999999999
         """ current length of the data buffer """
         self.log_lowpass_current = None
@@ -56,8 +57,7 @@ class OnlineReader:
         self.current_length += 1
         if self.current_length > self.invoke_at:
             self.invoke_at = 99999999999
-            if self.invoke_callback is not None:
-                self.invoke_callback()
+            self.invoke_callback()
 
     def set_trigger_in(self, callback: Callable, in_n: int = 50):
         """ Sets a trigger to call the given callback function in in_n steps """
@@ -65,7 +65,8 @@ class OnlineReader:
 
     def set_trigger_at(self, callback: Callable, at: int = 50):
         """ Sets a trigger to call the given callback function at the given sample-count """
-        self.invoke_callback = staticmethod(callable)
+        self.invoke_callback.clear()
+        self.invoke_callback += callable
         self.invoke_at = at
 
     def get_since_n_as_measurement(self, n):
