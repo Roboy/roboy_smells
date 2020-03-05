@@ -25,11 +25,16 @@ class ClassifierOrganizer:
         print('ros e_nose classification node started successfully')
 
     def startMeas(self):
-        while True:
-            var = input("Please enter something: ")
-            print('restarting classification',var)
-            self.from_sample = self.online.current_length
-            self.online.set_trigger_in(self.gatheredData, 5)
+        try:
+            while True:
+                var = input("Please enter something: ")
+                print('restarting classification',var)
+                self.from_sample = self.online.current_length
+                self.online.set_trigger_in(self.gatheredData, 5)
+                if var.lower() == 'q':
+                    break
+        except KeyboardInterrupt:
+            print('Interrupted...')
 
     def gatheredData(self):
         print('gathered data')
