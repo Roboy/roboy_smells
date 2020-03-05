@@ -31,6 +31,8 @@ class DataType(Enum):
     LAST_AVG = auto()
     STANDARDIZED = auto()
     GROUPED = auto()
+    FULL = auto()
+    HIGH_PASS = auto()
 
     def is_grouped(self) -> bool:
         """
@@ -118,19 +120,16 @@ class Measurement:
                 if self.reference_measurement is None:
                     if not log:
                         print("WARNING! USING LOG HIGH PASS FOR NORMAL DATA!")
-                    cache[DataType.STANDARDIZED] = \
-                        dp.high_pass_logdata(data[:, mask])
+                    cache[DataType.STANDARDIZED] = dp.high_pass_logdata(data[:, mask])
                 elif isinstance(self.reference_measurement, Measurement):
                     reference = self.reference_measurement.get_data_as(DataType.LAST_AVG, False, num_last=10, log=log)
-                    cache[DataType.STANDARDIZED] = \
-                        dp.high_pass_logdata(data[:, mask], init=reference)
+                    cache[DataType.STANDARDIZED] = dp.high_pass_logdata(data[:, mask], init=reference)
                 elif isinstance(self.reference_measurement, np.ndarray):
                     if not log:
                         print("WARNING! USING LOG REFERENCE FOR NORMAL DATA!")
-                    cache[DataType.STANDARDIZED] = \
-                        dp.high_pass_logdata(data, init=self.reference_measurement)[:, mask]
+                    cache[DataType.STANDARDIZED] = dp.high_pass_logdata(data, init=self.reference_measurement)[:, mask]
                 else:
-                    raise TypeError("ERROR: Invalid state of reference-measurement: " + str(type(self.reference_measurement)))
+                    raise TypeError("ERROR: Invalid state of reference-measurement: " + str(type(self.reference_measurement)) + str(type(Measurement)))
 
             return cache[DataType.STANDARDIZED]
 
@@ -161,6 +160,10 @@ class Measurement:
         data_as: Optional[np.ndarray] = None
         if datatype is DataType.LAST_AVG:
             data_as = np.mean(self.get_data(standardize, force, log=log)[-num_last:, :], axis=0)
+        elif datatype is DataType.HIGH_PASS:
+            data_as = self.get_data(standardize, force, log=log)
+        elif datatype is DataType.FULL:
+            data_as = dp.full_pre_processing(self.get_data(standardize, force, log=log))
         elif datatype is DataType.TOTAL_AVG:
             data_as = np.mean(self.get_data(standardize, force, log=log), axis=0)
         elif datatype is DataType.PEAK_AVG:
@@ -177,9 +180,14 @@ class Measurement:
             data_as = \
                 dp.group_meas_data_by_functionalisation(self.get_data(standardize, force, log=log),
                                                         self.correct_functionalisations)
+        else:
+            print("no type found")
 
-        if standardize:
-            cache[datatype] = data_as
+        if standardize and data_as is not None:
+            if log:
+                self.cached_logdata[datatype] = data_as
+            else:
+                self.cached_data[datatype] = data_as
         return data_as
 
     def get_data_extended(self, datatype: DataType, standardize: bool = True, force: bool = False, log: bool = True,
@@ -208,3 +216,4 @@ class Measurement:
             pure_data = np.append(pure_data, self.altitude)
 
         return pure_data
+

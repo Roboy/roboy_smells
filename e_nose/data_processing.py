@@ -3,6 +3,7 @@ from typing import List, Optional, Tuple, Mapping, Dict
 
 import numpy as np
 from .measurements import Measurement, DataRowsSet_t, WorkingChannels_t, Functionalisations_t, StandardizationType
+from scipy import signal
 
 
 def standardize_measurements(measurements: List[Measurement],
@@ -23,6 +24,9 @@ def standardize_measurements(measurements: List[Measurement],
             if not measurement.is_reference() or not remove_ref:
                 clean_measurements.append(measurement)
         return clean_measurements
+
+    elif type == StandardizationType.FULL_PREPROCESSING:
+        return standardize_measurements_lowpass(measurements, remove_ref)
 
     raise ValueError('Unknown standardization type')
 
@@ -238,6 +242,33 @@ def high_pass_logdata(data: np.ndarray, init: Optional[np.ndarray] = None) -> np
         out_data[i] -= l1_filter
     return out_data
 
+def full_pre_processing(data: np.ndarray, init: Optional[np.ndarray] = None) -> np.ndarray:
+    """ Filters out slow trends from logarithmic data; zeroes the avg of the first 5 samples.
+     WILL NOT modify the passed array in-place"""
+    out_data = high_pass_logdata(data, init)
+    return low_pass_mean_std_measurement(out_data)
+
+
+def butter_lowpass_filter(data, cutoff, fs, order):
+    nyq = 0.5 * fs
+    normal_cutoff = cutoff / nyq
+    # Get the filter coefficients
+    b, a = signal.butter(order, normal_cutoff, btype='low', analog=False)
+    y = signal.filtfilt(b, a, data)
+    return y
+
+def low_pass_mean_std_measurement(data, sample_rate=0.5, cutoff_freq=0.02, order=2):
+    ys = np.zeros_like(data)
+    for i in range(data.shape[1]):
+        y = butter_lowpass_filter(data[:, i], cutoff_freq, sample_rate, order)
+        ys[:, i] = y
+
+    for i in range(data.shape[0]):
+        mean = np.mean(ys[i, :])
+        var = np.std(ys[i, :])
+        ys[i, :] = (ys[i, :] - mean) / var
+
+    return ys
 
 def get_measurement_peak_average(data: np.ndarray, num_samples=10) \
         -> np.ndarray:

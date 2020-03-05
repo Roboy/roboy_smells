@@ -2,7 +2,7 @@ import numpy as np
 
 from e_nose import file_reader
 from e_nose import data_processing as dp
-from e_nose.measurements import StandardizationType
+from e_nose.measurements import StandardizationType, DataType
 from scipy import signal
 
 def butter_lowpass_filter(data, cutoff, fs, order):
@@ -13,19 +13,21 @@ def butter_lowpass_filter(data, cutoff, fs, order):
     y = signal.filtfilt(b, a, data)
     return y
 
-def low_pass_mean_std_measurement(meas, sample_rate=0.5, cutoff_freq=0.02, order=2):
-    data = meas.get_data()
-    ys = np.zeros_like(data)
-    for i in range(data.shape[1]):
-        y = butter_lowpass_filter(data[:,i], cutoff_freq, sample_rate, order)
-        ys[:,i] = y
+def low_pass_mean_std_measurement(measurements, sample_rate=0.5, cutoff_freq=0.02, order=2):
+    for meas in measurements:
+        data = meas.get_data()
+        ys = np.zeros_like(data)
+        for i in range(data.shape[1]):
+            y = butter_lowpass_filter(data[:,i], cutoff_freq, sample_rate, order)
+            ys[:,i] = y
 
-    for i in range(data.shape[0]):
-        mean = np.mean(ys[i, :])
-        var = np.std(ys[i, :])
-        ys[i, :] = (ys[i, :] - mean) / var
+        for i in range(data.shape[0]):
+            mean = np.mean(ys[i, :])
+            var = np.std(ys[i, :])
+            ys[i, :] = (ys[i, :] - mean) / var
 
-    return ys
+        meas.data = ys
+    return measurements
 
 
 def get_measurements_from_dir(directory_name='../data'):
@@ -74,7 +76,7 @@ def shuffle(dataset_one, dataset_two=None):
         return dataset_one
 
 
-def get_batched_data(measurements, classes_dict, masking_value, batch_size=4, sequence_length=4, dimension=64, return_sequences=True):
+def get_batched_data(measurements, classes_dict, masking_value, data_type=DataType.HIGH_PASS, batch_size=4, sequence_length=4, dimension=64, return_sequences=True):
 
     measurement_indices = np.arange(len(measurements))
     np.random.shuffle(measurement_indices)
@@ -96,7 +98,7 @@ def get_batched_data(measurements, classes_dict, masking_value, batch_size=4, se
             index = batch_indices[b]
             #print(index)
             if index != masking_value:
-                series_data = measurements[index].get_data()
+                series_data = measurements[index].get_data_as(data_type)
                 #print(classes_dict[measurements[index].label])
                 series_labels = np.ones(shape=(series_data.shape[0], 1), dtype=int) * classes_dict[measurements[index].label]
             else:
