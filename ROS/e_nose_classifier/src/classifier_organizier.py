@@ -10,6 +10,9 @@ import keyboard  # using module keyboard
 
 class ClassifierOrganizer:
     def __init__(self):
+        print('Initialiting ROS node...')
+        rospy.init_node('e_nose_classifier_publish', anonymous=False)
+        print('Initialiting Subcomponents...')
         self.pub = eNoseClassificationPublisher()
         self.pub_test = eNoseClassificationTestPublisher()
         self.sub = eNoseSubscriber()
@@ -19,6 +22,7 @@ class ClassifierOrganizer:
         self.model_name = 'LSTMTrainable_9bbda05c_13_batch_size=128,data_preprocessing=full,dim_hidden=6,lr=0.0070389,return_sequences=True_2020-03-05_14-41-03jgrcr7l1'
         self.classifier.load_weights(self.model_name, checkpoint=200, path='../classification/models/rnn/')
         keyboard.on_press_key("space", self.startMeas)
+        print('ros e_nose classification node started successfully')
         rospy.spin()
 
     def startMeas(self):
