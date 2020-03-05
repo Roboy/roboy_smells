@@ -48,6 +48,8 @@ lstm.summary()
 lstm.load_weights(model_name=model_name, checkpoint=checkpoint, path='./models/rnn/')
 
 for m in measurements:
+    print(m.get_data_as(DataType.HIGH_PASS).shape)
+
     print(lstm.predict_live(m))
 
 '''

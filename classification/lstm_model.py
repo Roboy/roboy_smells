@@ -83,5 +83,15 @@ class SmelLSTM:
         prediction = self.classes_list[np.argmax(y.numpy(), -1).flatten()[0]]
         return prediction
 
+    def predict_over_measurement(self, measurement):
+        data = measurement.get_data_as(self.data_type)
+        self.model.reset_states()
+        sample = np.empty(shape=self.input_shape)
+        for d in range(data.shape[0]):
+            sample[0, :, :] = data[d:d+self.sequence_length, :]
+            y = self.model(sample, training=False)
+        #prediction =
+        #return prediction
+
     def summary(self):
         self.model.summary()
