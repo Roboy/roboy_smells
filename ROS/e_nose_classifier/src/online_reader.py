@@ -13,7 +13,8 @@ class OnlineReader:
     l1_factor = 1e-3
     """ Factor for the low-pass filter """
 
-    def __init__(self, sensor_id, standardization=StandardizationType.LOWPASS_FILTER, max_history_length=100000):
+    def __init__(self, sensor_id, standardization=StandardizationType.LOWPASS_FILTER, override_functionalisations=None,
+                 override_working_channels=None, max_history_length=100000):
         """
 
         :param sensor_id: ID of the sensor to use => to know the functionalisations and failure bits
@@ -34,6 +35,10 @@ class OnlineReader:
         self.standardization = standardization
 
         self.functionalisations, self.working_channels = self.get_sensor_spec(sensor_id)
+        if override_functionalisations is not None:
+            self.functionalisations = override_functionalisations
+        if override_working_channels is not None:
+            self.working_channels = override_working_channels
 
     def set_standardization_type(self, standardization):
         self.standardization = standardization
@@ -64,7 +69,7 @@ class OnlineReader:
         self.invoke_at = at
 
     def get_since_n_as_measurement(self, n):
-        return self.get_last_n_as_measurement(self.current_length-n)
+        return self.get_last_n_as_measurement(self.current_length - n)
 
     def get_last_n_as_measurement(self, n=300):
         """
