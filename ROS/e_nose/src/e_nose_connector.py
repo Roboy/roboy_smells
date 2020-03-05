@@ -1,6 +1,8 @@
+#!/usr/bin/env python
 import re
 import serial
 import serial.tools.list_ports
+
 
 class eNoseConnector:
     """ Connects to an eNose on the given port with the given baudrate.
@@ -9,7 +11,7 @@ class eNoseConnector:
 
         Use onUpdate like this: connector.onUpdate += <callbackMethod>"""
 
-    def __init__(self, port: str = None, baudrate: int = 115200, channels: int = 64):
+    def __init__(self, port=None, baudrate=115200, channels=64):
         self.sensorValues = [0.0] * channels
         self.channels = channels
 
