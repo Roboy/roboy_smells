@@ -42,7 +42,7 @@ def get_measurements_train_test_from_dir(train_dir='../data', test_dir='../data'
 
     measurements_per_file_test = {}
     for file in data_test:
-        measurements_per_file_test[file] = dp.get_labeled_measurements(data_test[file], correct_channels, functionalisations_test, start_offset=[-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5])
+        measurements_per_file_test[file] = dp.get_labeled_measurements(data_test[file], correct_channels, functionalisations_test, start_offset=[-5,  -2, 0, 2, 5])
 
     measurements_test = []
     for file in measurements_per_file_test:
@@ -52,7 +52,7 @@ def get_measurements_train_test_from_dir(train_dir='../data', test_dir='../data'
 
     measurements_per_file_train = {}
     for file in data_train:
-        measurements_per_file_train[file] = dp.get_labeled_measurements(data_train[file], correct_channels, functionalisations_train)
+        measurements_per_file_train[file] = dp.get_labeled_measurements(data_train[file], correct_channels, functionalisations_train, start_offset=[-5,  -2, 0, 2, 5])
 
     measurements_train = []
     for file in measurements_per_file_train:
@@ -227,6 +227,41 @@ def get_data_stateless(measurements, dimension=35, return_sequences=True, augmen
     print(full_data.shape, full_labels.shape)
 
     return tf.data.Dataset.from_tensor_slices((tf.constant(full_data), tf.constant(full_labels)))
+
+def get_data_knn(measurements, dimension=35, return_sequences=True, augment=False, sequence_length=50, masking_value=100., batch_size=64, classes_dict=None, data_type=DataType.HIGH_PASS):
+    if classes_dict == None:
+        classes_list = ['coffee_powder', 'isopropanol', 'orange_juice', 'raisin', 'red_wine', 'wodka']
+        classes_dict = {}
+        for i, c in enumerate(classes_list):
+            classes_dict[c] = i
+
+    padding = batch_size - len(measurements)%batch_size
+
+    full_length = len(measurements) + padding
+
+    full_data = np.ones(shape=(full_length, sequence_length, dimension)) * masking_value
+
+    if return_sequences:
+        full_labels = np.zeros(shape=(full_length, sequence_length, 1), dtype=int)
+    else:
+        full_labels = np.zeros(shape=(full_length, 1), dtype=int)
+    labels_shape = full_labels.shape[1:]
+
+    for i, m in enumerate(measurements):
+        d = m.get_data_as(data_type)
+        if d.shape[1] != dimension:
+            raise ValueError("Dimension mismatch")
+        if d.shape[0] < sequence_length:
+            raise ValueError("Measurement too short!")
+        full_data[i] = m.get_data_as(data_type)[:sequence_length, :]
+        full_labels[i] = np.ones(shape=labels_shape, dtype=int)*classes_dict[m.label]
+
+    #indices = np.arange(full_labels.shape[0])
+    #np.random.shuffle(indices)
+
+    print(full_data.shape, full_labels.shape)
+
+    return full_data, full_labels
 
 '''
 measurements = get_measurements_from_dir('../data_test')[:6]
