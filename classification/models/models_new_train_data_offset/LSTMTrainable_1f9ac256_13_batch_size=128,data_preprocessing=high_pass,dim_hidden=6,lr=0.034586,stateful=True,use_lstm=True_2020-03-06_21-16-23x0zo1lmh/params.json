@@ -1,0 +1,8 @@
+{
+  "batch_size": 128,
+  "data_preprocessing": "high_pass",
+  "dim_hidden": 6,
+  "lr": 0.03458587758570829,
+  "stateful": true,
+  "use_lstm": true
+}
