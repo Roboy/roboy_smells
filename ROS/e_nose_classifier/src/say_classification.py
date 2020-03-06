@@ -2,9 +2,14 @@ import random
 import time
 from enum import Enum, auto
 
-import pyroboy
 import rospy
 from std_msgs.msg import String
+
+try:
+    import pyroboy
+except ImportError:
+    print('Failed to import pyroboy; just printing to cmd instead')
+    pass
 
 
 class ClassificationVoicer:
@@ -68,8 +73,12 @@ class ClassificationVoicer:
         if isinstance(text, list):
             text = random.choice(text)
         text = text.replace('%CLASS%', self.current_class)
-        pyroboy.say(text)
         self.last_say_time = time.time()
+        print('Saying: ', text)
+        try:
+            pyroboy.say(text)
+        except:
+            pass
 
     def change_state(self, state):
         print('State changed to ', state)
