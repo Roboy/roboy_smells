@@ -11,7 +11,7 @@ import rospy
 class ClassifierOrganizer:
     def __init__(self):
         print('Initialiting ROS node...')
-        rospy.init_node('e_nose_classifier_publish', anonymous=False)
+        rospy.init_node('roboy/e_nose/classifier_publish', anonymous=False)
         print('Initialiting Subcomponents...')
         self.pub = eNoseClassificationPublisher()
         self.pub_test = eNoseClassificationTestPublisher()

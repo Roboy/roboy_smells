@@ -19,7 +19,7 @@ class eNoseSubscriber:
 
 
     def listener(self):
-        rospy.Subscriber("enose_sensordata", e_nose_raw, self.callback)
+        rospy.Subscriber("roboy/e_nose/sensordata", e_nose_raw, self.callback)
         print('started e_nose e_nose_sensor_raw_listener successfully')
 
 

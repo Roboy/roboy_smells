@@ -9,8 +9,8 @@ from e_nose_connector import eNoseConnector
 
 def enose_node():
     eNose = eNoseConnector()
-    pub_e_nose = rospy.Publisher('enose_sensordata', e_nose_raw, queue_size=10)
-    rospy.init_node('e_nose_sensor', anonymous=False)
+    pub_e_nose = rospy.Publisher('roboy/e_nose/sensordata', e_nose_raw, queue_size=10)
+    rospy.init_node('roboy/e_nose/sensor', anonymous=False)
     rate = rospy.Rate(2)  # 10hz
     print('e_nose_raw node started succesfully')
     while not rospy.is_shutdown():
