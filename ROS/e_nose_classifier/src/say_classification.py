@@ -48,7 +48,21 @@ class ClassificationVoicer:
         "I definitely smell %CLASS%!"
     ]
 
+    CLASS_NAMES = {
+        "none": "No Data",
+        "red_wine": "Red Wine",
+        "pinot_noir": "Pinot Noir",
+        "orange_juice": "Orange Juice",
+        "isopropanol": "Isopropanol",
+        "acetone": "Acetone",
+        "wodka": "Wodka",
+        "raisin": "Raisin",
+        "coffee": "Coffee"
+    }
+
     TIME_RESET = 30.0
+    TIME_UNTIL_SURE = 15.0
+    TIME_ENTERTAIN_MIN = 5.0
 
     CLASS_NULL = ['ref', 'null']
 
@@ -72,7 +86,10 @@ class ClassificationVoicer:
     def say(self, text):
         if isinstance(text, list):
             text = random.choice(text)
-        text = text.replace('%CLASS%', self.current_class)
+        cname = 'something'
+        if self.current_class in self.CLASS_NAMES:
+            cname = self.CLASS_NAMES[self.current_class]
+        text = text.replace('%CLASS%', cname)
         self.last_say_time = time.time()
         print('Saying:', text)
         try:
@@ -103,7 +120,7 @@ class ClassificationVoicer:
                     self.change_state(ClassificationVoicer.State.START_SMELL)
                     self.say(self.NEW_SMELL_QUOTES)
         elif self.state == ClassificationVoicer.State.START_SMELL:
-            if curr_time - self.last_class_change_time > 10:
+            if curr_time - self.last_class_change_time > self.TIME_UNTIL_SURE:
                 # No class change for 10 seconds => transition to sure
                 self.change_state(ClassificationVoicer.State.SURE)
                 self.say(self.SURE_SMELL_QUOTES)
@@ -126,7 +143,7 @@ class ClassificationVoicer:
                 self.change_state(ClassificationVoicer.State.NULL)
                 self.say(self.CONFUSED_SMELL_QUOTES)
             elif changed:
-                if smell_class not in self.CLASS_NULL and curr_time - self.last_say_time > 5:
+                if smell_class not in self.CLASS_NULL and curr_time - self.last_say_time > self.TIME_ENTERTAIN_MIN:
                     # entertain while in confused state
                     self.say(self.MAYBE_SMELL_QUOTES)
         elif self.state == ClassificationVoicer.State.SURE:
@@ -134,7 +151,7 @@ class ClassificationVoicer:
                 # back to init
                 self.change_state(ClassificationVoicer.State.NULL)
             elif changed:
-                if smell_class in self.CLASS_NULL and curr_time - self.last_state_change_time > 10:
+                if smell_class in self.CLASS_NULL and curr_time - self.last_state_change_time > self.TIME_UNTIL_SURE:
                     # back to init
                     self.change_state(ClassificationVoicer.State.NULL)
                 else:
