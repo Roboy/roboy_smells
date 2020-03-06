@@ -124,16 +124,22 @@ def balance_measurements_by_label(measurements: List[Measurement]) -> List[Measu
     return balanced_measurements
 
 
-BROKEN_THRESHOLD: float = 350.0
+BROKEN_THRESHOLD_OFFSET: float = 1.0
 
 
 def find_broken_channels(functionalisations: Functionalisations_t, data: DataRowsSet_t,
                          debug: bool = True) -> WorkingChannels_t:
-    failure_bits = np.zeros((len(functionalisations)), bool)
+    """ Finds broken channels and returns a list of WORKING channels
+    channels are interpreted as broken if their minimum is the same as the smallest channels minimum
+    """
+    channel_min = None
     for measurement in data:
-        fail = np.array(data[measurement]['channels']) < BROKEN_THRESHOLD
-        failure_bits[fail] = True
+        if channel_min is None:
+            channel_min = np.array(data[measurement]['channels'])
+        channel_min = np.minimum(channel_min, np.array(data[measurement]['channels']))
 
+    total_min = np.min(channel_min)
+    failure_bits = channel_min < total_min + BROKEN_THRESHOLD_OFFSET
     if debug:
         fail_list = np.where(failure_bits)[0]
         print('Found %i failing channels:' % len(fail_list))
@@ -145,13 +151,20 @@ def find_broken_channels(functionalisations: Functionalisations_t, data: DataRow
 
 def find_broken_channels_multi_files(functionalisations: Functionalisations_t,
                                      all_data: Dict[str, DataRowsSet_t], debug: bool = True) -> WorkingChannels_t:
+    """ Finds broken channels and returns a list of WORKING channels
+    channels are interpreted as broken if their minimum is the same as the smallest channels minimum """
     failure_bits = np.zeros((len(functionalisations)), bool)
     for file in all_data:
         file_failure_bits = np.zeros((len(functionalisations)), bool)
+        channel_min = None
         for measurement in all_data[file]:
-            fail = np.array(all_data[file][measurement]['channels']) < BROKEN_THRESHOLD
-            failure_bits[fail] = True
-            file_failure_bits[fail] = True
+            if channel_min is None:
+                channel_min = np.array(all_data[file][measurement]['channels'])
+            channel_min = np.minimum(channel_min, np.array(all_data[file][measurement]['channels']))
+
+        total_min = np.min(channel_min)
+        file_failure_bits = channel_min < total_min + BROKEN_THRESHOLD_OFFSET
+        failure_bits[file_failure_bits] = True
         if debug:
             fail_list = np.where(file_failure_bits)[0]
             print('File %s:' % file)
