@@ -59,6 +59,7 @@ class ClassifierOrganizer:
         prediction = self.classifier.predict_live(data)
         print('prediction: ', prediction)
         self.pub_test.send_classification(prediction)
+        self.pub.send_classification(prediction)
         self.online.set_trigger_in(2)
 
     def gotNewSample(self):
