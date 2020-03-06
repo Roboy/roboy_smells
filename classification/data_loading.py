@@ -193,27 +193,36 @@ def get_batched_data(measurements, classes_dict, masking_value, data_type=DataTy
     return batches_data_done, batches_labels_done, starting_indices
 
 
-def get_data_stateless(measurements, dimension=35, return_sequences=True, augment=False, sequence_length=50, classes_dict=None, data_type=DataType.HIGH_PASS):
+def get_data_stateless(measurements, dimension=35, return_sequences=True, augment=False, sequence_length=50, masking_value=100., batch_size=64, classes_dict=None, data_type=DataType.HIGH_PASS):
     if classes_dict == None:
         classes_list = ['coffee_powder', 'isopropanol', 'orange_juice', 'raisin', 'red_wine', 'wodka']
         classes_dict = {}
         for i, c in enumerate(classes_list):
             classes_dict[c] = i
 
-    full_data = np.empty(shape=(len(measurements), sequence_length, dimension))
+    padding = batch_size - len(measurements)%batch_size
+
+    full_length = len(measurements) + padding
+
+    full_data = np.ones(shape=(full_length, sequence_length, dimension)) * masking_value
 
     if return_sequences:
-        full_labels = np.empty(shape=(len(measurements), sequence_length, 1), dtype=int)
+        full_labels = np.empty(shape=(full_length, sequence_length, 1), dtype=int)
     else:
-        full_labels = np.empty(shape=(len(measurements), 1), dtype=int)
+        full_labels = np.empty(shape=(full_length, 1), dtype=int)
     labels_shape = full_labels.shape[1:]
 
     for i, m in enumerate(measurements):
+        d = m.get_data_as(data_type)
+        if d.shape[1] != dimension:
+            raise ValueError("Dimension mismatch")
+        if d.shape[0] < sequence_length:
+            raise ValueError("Measurement too short!")
         full_data[i] = m.get_data_as(data_type)[:sequence_length, :]
         full_labels[i] = np.ones(shape=labels_shape, dtype=int)*classes_dict[m.label]
 
-    indices = np.arange(full_labels.shape[0])
-    np.random.shuffle(indices)
+    #indices = np.arange(full_labels.shape[0])
+    #np.random.shuffle(indices)
 
     print(full_data.shape, full_labels.shape)
 
