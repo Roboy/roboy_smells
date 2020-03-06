@@ -51,9 +51,16 @@ class LSTMTrainable(tune.Trainable):
         self.classes_list = get_classes_list(measurements_in_train)
         self.classes_dict = get_classes_dict(self.classes_list)
         self.num_classes = self.classes_list.size
-        self.return_sequences = config["return_sequences"]
-        self.stateful = config["stateful"]
+
+        #self.return_sequences = config["return_sequences"]
+        self.return_sequences = True
+
+        #self.stateful = config["stateful"]
+        self.stateful = False
+
         self.use_lstm = config["use_lstm"]
+
+
 
 
         ####################
@@ -216,9 +223,9 @@ class LSTMTrainable(tune.Trainable):
 ray.init(num_cpus=12 if args.smoke_test else None)
 tune.run(
     LSTMTrainable,
-    stop={"training_iteration": 5 if args.smoke_test else 300},
+    stop={"training_iteration": 5 if args.smoke_test else 400},
     verbose=1,
-    name="lstm_roboy_friday_5",
+    name="lstm_roboy_friday_7",
     num_samples=8,
     checkpoint_freq=20,
     checkpoint_at_end=True,
@@ -226,8 +233,8 @@ tune.run(
         "lr": tune.sample_from(lambda spec: np.random.uniform(0.0001, 0.05)),
         "batch_size": tune.grid_search([64, 128]),
         "dim_hidden": tune.grid_search([6, 12, 50]),
-        "return_sequences": tune.grid_search([True]),
+        #"return_sequences": tune.grid_search([True]),
         "data_preprocessing": tune.grid_search(["high_pass"]),
-        "stateful": tune.grid_search([False]),
+        #"stateful": tune.grid_search([False]),
         "use_lstm": tune.grid_search([False, True])
     })
