@@ -8,7 +8,7 @@ from std_msgs.msg import String
 try:
     import pyroboy
 except ImportError:
-    print('Failed to import pyroboy; just printing to cmd instead')
+    print('Failed to import pyroboy; just printing to stdout')
     pass
 
 
@@ -54,7 +54,7 @@ class ClassificationVoicer:
 
     def __init__(self):
         print('Initialiting ROS node...')
-        rospy.init_node('roboy/e_nose/classification_voicer', anonymous=False)
+        rospy.init_node('e_nose_classification_voicer', anonymous=False)
         print('Initialiting Subcomponents...')
 
         self.current_class = None
@@ -63,7 +63,7 @@ class ClassificationVoicer:
         self.last_state_change_time = time.time()
         self.state = ClassificationVoicer.State.NULL
 
-        rospy.Subscriber("classification", String, self.callback)
+        rospy.Subscriber("/e_nose_classification", String, self.callback)
         print('ros e_nose classification VOICER node started successfully')
 
     def run(self):
@@ -74,14 +74,14 @@ class ClassificationVoicer:
             text = random.choice(text)
         text = text.replace('%CLASS%', self.current_class)
         self.last_say_time = time.time()
-        print('Saying: ', text)
+        print('Saying:', text)
         try:
             pyroboy.say(text)
         except:
             pass
 
     def change_state(self, state):
-        print('State changed to ', state)
+        print('State changed to:', state)
         self.state = state
         self.last_state_change_time = time.time()
 
@@ -94,6 +94,7 @@ class ClassificationVoicer:
             self.last_class_change_time = curr_time
             self.current_class = smell_class
             changed = True
+        print('Received class:', smell_class, '(has changed)' if changed else '(no change)')
 
         if self.state == ClassificationVoicer.State.NULL:
             if changed:
@@ -122,7 +123,7 @@ class ClassificationVoicer:
                     self.say(self.SURE_SMELL_QUOTES)
             elif curr_time - self.last_state_change_time > self.TIME_RESET:
                 # confusing stuff for too long => back to init
-                self.change_state(ClassificationVoicer.State.NONE)
+                self.change_state(ClassificationVoicer.State.NULL)
                 self.say(self.CONFUSED_SMELL_QUOTES)
             elif changed:
                 if smell_class not in self.CLASS_NULL and curr_time - self.last_say_time > 5:
@@ -131,11 +132,11 @@ class ClassificationVoicer:
         elif self.state == ClassificationVoicer.State.SURE:
             if curr_time - self.last_state_change_time > self.TIME_RESET:
                 # back to init
-                self.change_state(ClassificationVoicer.State.NONE)
+                self.change_state(ClassificationVoicer.State.NULL)
             elif changed:
                 if smell_class in self.CLASS_NULL and curr_time - self.last_state_change_time > 10:
                     # back to init
-                    self.change_state(ClassificationVoicer.State.NONE)
+                    self.change_state(ClassificationVoicer.State.NULL)
                 else:
                     # go to confused
                     self.change_state(ClassificationVoicer.State.CONFUSED)

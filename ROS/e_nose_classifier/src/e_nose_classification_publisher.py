@@ -11,6 +11,7 @@ class eNoseClassificationPublisher():
         self.pub_classifier = rospy.Publisher('/oui/test', String, queue_size=10)
 
     def send_classification(self, classified: String):
+        print('sending classification')
         if not rospy.is_shutdown():
             text = str('Hey I smelled: ' + classified)
             self.pub_classifier.publish(self.get_json_text_message(39, text))
