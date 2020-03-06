@@ -13,7 +13,7 @@ bme680 = None
 
 def bme680_node():
     send_warning = False
-    pub_temp = rospy.Publisher('env_sensor', String)
+    pub_temp = rospy.Publisher('env_sensor', String, queue_size=10)
     pub_temp_warn = rospy.Publisher('env_sensor', String, queue_size=10)
     pub_gas = rospy.Publisher('env_sensor', String, queue_size=10)
     pub_humidity = rospy.Publisher('env_sensor', String, queue_size=10)
