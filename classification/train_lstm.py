@@ -220,7 +220,7 @@ class LSTMTrainable(tune.Trainable):
         }
 
 
-ray.init(num_cpus=12 if args.smoke_test else None)
+ray.init(num_cpus=6 if args.smoke_test else None)
 tune.run(
     LSTMTrainable,
     stop={"training_iteration": 5 if args.smoke_test else 400},
@@ -228,11 +228,12 @@ tune.run(
     name="lstm_roboy_friday_7",
     num_samples=8,
     checkpoint_freq=20,
-    checkpoint_at_end=True,
     config={
-        "lr": tune.sample_from(lambda spec: np.random.uniform(0.0001, 0.05)),
+        "lr": tune.sample_from(lambda spec: np.random.uniform(0.0001, 0.1)),
         "batch_size": tune.grid_search([64, 128]),
         "dim_hidden": tune.grid_search([6, 12, 50]),
+        #"return_sequences": tune.grid_search([True]),
+        "dim_hidden": tune.grid_search([8, 10, 32, 64]),
         #"return_sequences": tune.grid_search([True]),
         "data_preprocessing": tune.grid_search(["high_pass"]),
         #"stateful": tune.grid_search([False]),
