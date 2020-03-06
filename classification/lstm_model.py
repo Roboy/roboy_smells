@@ -1,13 +1,13 @@
 from e_nose.measurements import DataType
 import numpy as np
 
-def make_model(input_shape, dim_hidden, num_classes, masking_value=100., return_sequences=True):
+def make_model(input_shape, dim_hidden, num_classes, masking_value=100., return_sequences=True, stateful=True):
     from tensorflow import keras
 
     model = keras.models.Sequential()
     model.add(keras.layers.Masking(mask_value=masking_value,
                                       batch_input_shape=input_shape))
-    model.add(keras.layers.LSTM(dim_hidden, return_sequences=return_sequences, stateful=True))
+    model.add(keras.layers.LSTM(dim_hidden, return_sequences=return_sequences, stateful=stateful))
 
     if return_sequences:
         model.add(keras.layers.TimeDistributed(keras.layers.Dense(num_classes)))
@@ -17,22 +17,22 @@ def make_model(input_shape, dim_hidden, num_classes, masking_value=100., return_
     return model
 
 
-def make_model_deeper(input_shape, num_classes, hidden_dim_1=32, hidden_dim_2=16, dropout=0.5, masking_value=100., return_sequences=True):
+def make_model_deeper(input_shape, num_classes, hidden_dim_1=32, hidden_dim_2=16, dropout=0.5, masking_value=100., return_sequences=True, stateful=True):
     from tensorflow import keras
 
     model = keras.models.Sequential()
     model.add(keras.layers.Masking(mask_value=masking_value,
                                       batch_input_shape=input_shape))
-    model.add(keras.layers.LSTM(hidden_dim_1, return_sequences=True, stateful=True))
+    model.add(keras.layers.LSTM(hidden_dim_1, return_sequences=True, stateful=stateful))
 
     if return_sequences:
-        if dropout > 0.:
-            model.add(keras.layers.TimeDistributed(keras.layers.Dropout(0.5)))
+        #if dropout > 0.:
+        #    model.add(keras.layers.TimeDistributed(keras.layers.Dropout(0.5)))
         model.add(keras.layers.TimeDistributed(keras.layers.Dense(hidden_dim_2)))
         model.add(keras.layers.TimeDistributed(keras.layers.Dense(num_classes)))
     else:
-        if dropout > 0.:
-            model.add(keras.layers.Dropout(0.5))
+        #if dropout > 0.:
+        #    model.add(keras.layers.Dropout(0.5))
         model.add(keras.layers.Dense(hidden_dim_2))
         model.add(keras.layers.Dense(num_classes))
 
@@ -48,7 +48,7 @@ def make_model_deeper(input_shape, num_classes, hidden_dim_1=32, hidden_dim_2=16
 
 
 class SmelLSTM:
-    def __init__(self, input_shape, num_classes, masking_value=100., return_sequences=True, simple_model=True,
+    def __init__(self, input_shape, num_classes, masking_value=100., return_sequences=True, simple_model=True, stateful=True,
                  hidden_dim_simple=6, data_type=DataType.HIGH_PASS, classes_list = ['coffee_powder', 'isopropanol', 'orange_juice', 'raisin', 'red_wine', 'wodka']):
 
         self.input_shape = input_shape
@@ -64,13 +64,23 @@ class SmelLSTM:
         self.classes_list = classes_list
 
         if self.simple_model:
-            self.model = make_model(input_shape=self.input_shape, dim_hidden=self.hidden_dim_simple, num_classes=self.num_classes, return_sequences=self.return_sequences)
+            self.model = make_model(input_shape=self.input_shape, dim_hidden=self.hidden_dim_simple, num_classes=self.num_classes, return_sequences=self.return_sequences, stateful=stateful)
         else:
-            self.model = make_model_deeper(input_shape=self.input_shape, num_classes=self.num_classes)
+            self.model = make_model_deeper(input_shape=self.input_shape, num_classes=self.num_classes, stateful=stateful)
 
     def load_weights(self, model_name, checkpoint, path='./models/rnn/'):
         path_to_model = path + model_name + '/checkpoint_' + str(checkpoint) + '/model_weights'
         self.model.load_weights(path_to_model)
+
+    def predict_from_batch(self, data_batch):
+        if len(data_batch.shape) < 2:
+            data_batch = np.expand_dims(data_batch, axis=0)
+            if len(data_batch) < 2:
+                data_batch = np.expand_dims(data_batch, axis=0)
+
+        y = self.model(data_batch, training=False)
+        prediction = self.classes_list[np.argmax(y.numpy(), -1).flatten()[0]]
+        return prediction
 
     def predict_live(self, measurement):
         data = measurement.get_data_as(self.data_type)
@@ -79,7 +89,8 @@ class SmelLSTM:
         for d in range(data.shape[0]):
             sample[0, 0, :] = data[d, :]
             y = self.model(sample, training=False)
-        prediction = self.classes_list[np.argmax(y.numpy(), -1).flatten()[0]]
+            prediction = self.classes_list[np.argmax(y.numpy(), -1).flatten()[0]]
+            print(prediction)
         return prediction
 
     def predict_over_measurement(self, measurement):
@@ -91,6 +102,9 @@ class SmelLSTM:
             y = self.model(sample, training=False)
         #prediction =
         #return prediction
+
+    def reset_states(self):
+        self.model.reset_states()
 
     def summary(self):
         self.model.summary()
