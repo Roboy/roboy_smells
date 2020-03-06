@@ -58,7 +58,7 @@ class ClassificationVoicer:
         self.last_state_change_time = time.time()
         self.state = ClassificationVoicer.State.NULL
 
-        rospy.Subscriber("classification", String, self.callback)
+        rospy.Subscriber("roboy/e_nose/classification", String, self.callback)
         print('ros e_nose classification VOICER node started successfully')
 
     def run(self):

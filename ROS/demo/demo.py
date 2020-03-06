@@ -56,9 +56,9 @@ def listener():
     # anonymous=True flag means that rospy will choose a unique
     # name for our 'listener' node so that multiple listeners can
     # run simultaneously.
-    rospy.init_node('demo_gui', anonymous=True)
+    rospy.init_node('roboy/e_nose/demo_gui', anonymous=True)
 
-    rospy.Subscriber("classification", String, callback)
+    rospy.Subscriber("roboy/e_nose/classification", String, callback)
 
 if __name__ == '__main__':
     class FullScreenApp(object):
