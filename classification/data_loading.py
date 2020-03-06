@@ -42,7 +42,7 @@ def get_measurements_train_test_from_dir(train_dir='../data', test_dir='../data'
 
     measurements_per_file_test = {}
     for file in data_test:
-        measurements_per_file_test[file] = dp.get_labeled_measurements(data_test[file], correct_channels, functionalisations_test, start_offset=[-5,  -2, 0, 2, 5])
+        measurements_per_file_test[file] = dp.get_labeled_measurements(data_test[file], correct_channels, functionalisations_test)#, start_offset=[-5,  -2, 0, 2, 5])
 
     measurements_test = []
     for file in measurements_per_file_test:
@@ -52,7 +52,8 @@ def get_measurements_train_test_from_dir(train_dir='../data', test_dir='../data'
 
     measurements_per_file_train = {}
     for file in data_train:
-        measurements_per_file_train[file] = dp.get_labeled_measurements(data_train[file], correct_channels, functionalisations_train, start_offset=[-5,  -2, 0, 2, 5])
+
+        measurements_per_file_train[file] = dp.get_labeled_measurements(data_train[file], correct_channels, functionalisations_train)#, start_offset=[-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5])
 
     measurements_train = []
     for file in measurements_per_file_train:
