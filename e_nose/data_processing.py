@@ -326,6 +326,32 @@ def low_pass_mean_std_measurement(data, sample_rate=0.5, cutoff_freq=0.02, order
 
     return ys
 
+
+def simple_low_pass_data(data):
+    out_data = np.copy(data)
+    l1_filter = data[0]
+    l1_factor = 2
+    for i in range(len(data)):
+        l1_filter = (l1_filter + data[i] * l1_factor) / (1.0 + l1_factor)
+        out_data[i] = l1_filter
+    return out_data
+
+
+def differential_pre_processing(data: np.ndarray) -> np.ndarray:
+    """ Differential Data: 1st element is AVG of all channels, then the differentials for each channel """
+    # Assuming the input data has already been transformed to log space
+    # and standardized (all channels are on the same level, now)
+
+    # Low-pass to filter out some noise
+    filtered_data = simple_low_pass_data(data)
+
+    # calculate average channel behaviour
+    avg_channel = np.mean(filtered_data, axis=1, keepdims=True)
+    out_data = np.vstack(avg_channel, filtered_data)
+
+    return out_data
+
+
 def get_measurement_peak_average(data: np.ndarray, num_samples=10) \
         -> np.ndarray:
     max_index = np.argmax(np.abs(data), axis=0)
