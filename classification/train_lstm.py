@@ -4,7 +4,7 @@ import ray
 from ray import tune
 
 import numpy as np
-from classification.data_loading import get_measurements_from_dir, train_test_split, shuffle, get_batched_data
+from classification.data_loading import get_measurements_from_dir, train_test_split, shuffle, get_batched_data, get_measurements_train_test_from_dir
 from classification.lstm_model import make_model, make_model_deeper
 from classification.util import get_class, get_classes_list, get_classes_dict, hot_fix_label_issue
 
@@ -20,8 +20,8 @@ gpus = []
 
 # LOAD FROM FILES
 #measurements = get_measurements_from_dir(os.path.join(parent_path, '../data'))
-measurements_in_train = get_measurements_from_dir(os.path.join(parent_path, 'data_train'))
-measurements_in_test = get_measurements_from_dir(os.path.join(parent_path, 'data_test'))
+measurements_in_train, measurements_in_test, num_correct_channels = get_measurements_train_test_from_dir(os.path.join(parent_path, 'data_train'), os.path.join(parent_path, 'data_test'))
+print('number of correct_channels:', num_correct_channels)
 
 measurements_in_train = hot_fix_label_issue(measurements_in_train)
 measurements_in_test = hot_fix_label_issue(measurements_in_test)
@@ -36,7 +36,7 @@ class LSTMTrainable(tune.Trainable):
         # INPUT SHAPE
         self.batch_size = config["batch_size"]
         self.sequence_length = 10
-        self.dim = 42
+        self.dim = num_correct_channels
         self.input_shape = (self.batch_size, self.sequence_length, self.dim)
 
         # OTHER STUFF
@@ -186,14 +186,14 @@ tune.run(
     LSTMTrainable,
     stop={"training_iteration": 5 if args.smoke_test else 200},
     verbose=1,
-    name="lstm_roboy",
-    num_samples=5,
+    name="lstm_roboy_friday_2",
+    num_samples=10,
     checkpoint_freq=50,
     checkpoint_at_end=True,
     config={
         "lr": tune.sample_from(lambda spec: np.random.uniform(0.0001, 0.1)),
-        "batch_size": tune.grid_search([64, 128]),
-        "dim_hidden": tune.grid_search([6, 8, 1000]),
+        "batch_size": tune.grid_search([128]),
+        "dim_hidden": tune.grid_search([6, 10, 16]),
         "return_sequences": tune.grid_search([True]),
-        "data_preprocessing": tune.grid_search(["full", "high_pass"])
+        "data_preprocessing": tune.grid_search(["high_pass"])
     })

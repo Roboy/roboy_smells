@@ -29,6 +29,37 @@ def low_pass_mean_std_measurement(measurements, sample_rate=0.5, cutoff_freq=0.0
         meas.data = ys
     return measurements
 
+def get_measurements_train_test_from_dir(train_dir='../data', test_dir='../data'):
+    functionalisations_train, correct_channels, data_train = file_reader.read_all_files_in_folder(train_dir)
+    functionalisations_test, correct_channels, data_test = file_reader.read_all_files_in_folder(test_dir)
+
+    combined = data_train.copy()
+    combined.update(data_test)
+
+    correct_channels = dp.find_broken_channels_multi_files(functionalisations_test, combined)
+    dp.find_broken_channels_multi_files
+
+    measurements_per_file_test = {}
+    for file in data_test:
+        measurements_per_file_test[file] = dp.get_labeled_measurements(data_test[file], correct_channels, functionalisations_test)
+
+    measurements_test = []
+    for file in measurements_per_file_test:
+        adding = dp.standardize_measurements(measurements_per_file_test[file], StandardizationType.LAST_REFERENCE)
+        if adding is not None:
+            measurements_test.extend(adding)
+
+    measurements_per_file_train = {}
+    for file in data_train:
+        measurements_per_file_train[file] = dp.get_labeled_measurements(data_train[file], correct_channels, functionalisations_train)
+
+    measurements_train = []
+    for file in measurements_per_file_train:
+        adding = dp.standardize_measurements(measurements_per_file_train[file], StandardizationType.LAST_REFERENCE)
+        if adding is not None:
+            measurements_train.extend(adding)
+
+    return np.array(measurements_train), np.array(measurements_test), np.count_nonzero(correct_channels)
 
 def get_measurements_from_dir(directory_name='../data'):
     functionalisations, correct_channels, data = file_reader.read_all_files_in_folder(directory_name)
@@ -153,7 +184,7 @@ def get_batched_data(measurements, classes_dict, masking_value, data_type=DataTy
         for i, y in enumerate(batches_labels_done):
             batches_labels_done_stateless[i] = y[:, 0, :]
         batches_labels_done = batches_labels_done_stateless
-    print('batches_labels_done.shape: ', batches_labels_done.shape)
+    #print('batches_labels_done.shape: ', batches_labels_done.shape)
     #print('batches_labels_done: ', batches_labels_done)
 
 
