@@ -207,9 +207,9 @@ def get_data_stateless(measurements, dimension=35, return_sequences=True, augmen
     full_data = np.ones(shape=(full_length, sequence_length, dimension)) * masking_value
 
     if return_sequences:
-        full_labels = np.empty(shape=(full_length, sequence_length, 1), dtype=int)
+        full_labels = np.zeros(shape=(full_length, sequence_length, 1), dtype=int)
     else:
-        full_labels = np.empty(shape=(full_length, 1), dtype=int)
+        full_labels = np.zeros(shape=(full_length, 1), dtype=int)
     labels_shape = full_labels.shape[1:]
 
     for i, m in enumerate(measurements):
