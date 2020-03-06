@@ -21,3 +21,6 @@ __pycache__/
 
 #tensorboard
 /logs*
+
+#data
+/data*
