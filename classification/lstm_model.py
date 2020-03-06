@@ -1,13 +1,16 @@
 from e_nose.measurements import DataType
 import numpy as np
 
-def make_model(input_shape, dim_hidden, num_classes, masking_value=100., return_sequences=True, stateful=True):
+def make_model(input_shape, dim_hidden, num_classes, masking_value=100., return_sequences=True, stateful=True, LSTM=True):
     from tensorflow import keras
 
     model = keras.models.Sequential()
     model.add(keras.layers.Masking(mask_value=masking_value,
                                       batch_input_shape=input_shape))
-    model.add(keras.layers.LSTM(dim_hidden, return_sequences=return_sequences, stateful=stateful))
+    if LSTM:
+        model.add(keras.layers.LSTM(dim_hidden, return_sequences=return_sequences, stateful=stateful))
+    else:
+        model.add(keras.layers.SimpleRNN(dim_hidden, return_sequences=return_sequences, stateful=stateful))
 
     if return_sequences:
         model.add(keras.layers.TimeDistributed(keras.layers.Dense(num_classes)))
@@ -17,13 +20,18 @@ def make_model(input_shape, dim_hidden, num_classes, masking_value=100., return_
     return model
 
 
-def make_model_deeper(input_shape, num_classes, hidden_dim_1=32, hidden_dim_2=16, dropout=0.5, masking_value=100., return_sequences=True, stateful=True):
+
+def make_model_deeper(input_shape, num_classes, hidden_dim_1=32, hidden_dim_2=16, dropout=0.5, masking_value=100., return_sequences=True, stateful=True, LSTM=True):
     from tensorflow import keras
 
     model = keras.models.Sequential()
     model.add(keras.layers.Masking(mask_value=masking_value,
                                       batch_input_shape=input_shape))
-    model.add(keras.layers.LSTM(hidden_dim_1, return_sequences=True, stateful=stateful))
+
+    if LSTM:
+        model.add(keras.layers.LSTM(hidden_dim_1, return_sequences=return_sequences, stateful=stateful))
+    else:
+        model.add(keras.layers.SimpleRNN(hidden_dim_1, return_sequences=return_sequences, stateful=stateful))
 
     if return_sequences:
         #if dropout > 0.:
@@ -49,7 +57,7 @@ def make_model_deeper(input_shape, num_classes, hidden_dim_1=32, hidden_dim_2=16
 
 class SmelLSTM:
     def __init__(self, input_shape, num_classes, masking_value=100., return_sequences=True, simple_model=True, stateful=True,
-                 hidden_dim_simple=6, data_type=DataType.HIGH_PASS, classes_list = ['coffee_powder', 'isopropanol', 'orange_juice', 'raisin', 'red_wine', 'wodka']):
+                 hidden_dim_simple=6, data_type=DataType.HIGH_PASS, LSTM=True, classes_list = ['coffee_powder', 'isopropanol', 'orange_juice', 'raisin', 'red_wine', 'wodka']):
 
         self.input_shape = input_shape
         self.num_classes = num_classes
@@ -62,11 +70,12 @@ class SmelLSTM:
         self.dimension = input_shape[2]
         self.data_type = data_type
         self.classes_list = classes_list
+        self.LSTM = LSTM
 
         if self.simple_model:
-            self.model = make_model(input_shape=self.input_shape, dim_hidden=self.hidden_dim_simple, num_classes=self.num_classes, return_sequences=self.return_sequences, stateful=stateful)
+            self.model = make_model(input_shape=self.input_shape, dim_hidden=self.hidden_dim_simple, num_classes=self.num_classes, LSTM=self.LSTM, return_sequences=self.return_sequences, stateful=stateful)
         else:
-            self.model = make_model_deeper(input_shape=self.input_shape, num_classes=self.num_classes, stateful=stateful)
+            self.model = make_model_deeper(input_shape=self.input_shape, num_classes=self.num_classes, LSTM=self.LSTM, return_sequences=self.return_sequences, stateful=stateful)
 
     def load_weights(self, model_name, checkpoint, path='./models/rnn/'):
         path_to_model = path + model_name + '/checkpoint_' + str(checkpoint) + '/model_weights'
