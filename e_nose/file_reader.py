@@ -46,8 +46,8 @@ def get_sensor_spec(sensor_id: int) -> Tuple[Functionalisations_t, WorkingChanne
         functionalisations = load_sensor_preset('LasVegas.preset')
         # Channel 15, 16 & 23 disabled as it gives huge numbers (but it kinda works..?)
         failures_huge = [15, 16, 23]
-        # Channel 22, 31, 27, 35, 39 are always stuck to the lower bound (347.9)
-        failures_too_low = [22, 31]
+        # Channel 22, 31 are shorts and always stuck to the lower bound (347.9)
+        failures_shorts = [22, 31]
         # Channels are IN SOME MEASUREMENTS stuck to the lower bound
         failures_mid_low = [3, 4, 22, 25, 26, 27, 28, 29, 31, 35, 36, 38, 39, 60]
         # More channels that are stuck somewhere
@@ -61,10 +61,10 @@ def get_sensor_spec(sensor_id: int) -> Tuple[Functionalisations_t, WorkingChanne
              0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
         )'''
         failures = np.zeros(64, bool)
-        failures[failures_huge] = True
-        failures[failures_too_low] = True
-        failures[failures_mid_low] = True
-        failures[failures_more] = True
+        #failures[failures_huge] = True
+        failures[failures_shorts] = True
+        #failures[failures_mid_low] = True
+        #failures[failures_more] = True
     else:
         print('Unknown Sensor ID %i! No functionalisation and channel failure data available' % sensor_id)
     correct_channels = np.invert(np.array(failures).astype(bool))

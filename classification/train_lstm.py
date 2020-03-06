@@ -4,7 +4,7 @@ import ray
 from ray import tune
 
 import numpy as np
-from classification.data_loading import get_measurements_from_dir, train_test_split, shuffle, get_batched_data
+from classification.data_loading import get_measurements_from_dir, train_test_split, shuffle, get_batched_data, get_measurements_train_test_from_dir, get_data_stateless
 from classification.lstm_model import make_model, make_model_deeper
 from classification.util import get_class, get_classes_list, get_classes_dict, hot_fix_label_issue
 
@@ -18,13 +18,19 @@ parser.add_argument(
 args, _ = parser.parse_known_args()
 gpus = []
 
+dir_train_max = '../data_train'
+dir_val_max = '../data_test'
+
 # LOAD FROM FILES
 #measurements = get_measurements_from_dir(os.path.join(parent_path, '../data'))
-measurements_in_train = get_measurements_from_dir(os.path.join(parent_path, 'data_train'))
-measurements_in_test = get_measurements_from_dir(os.path.join(parent_path, 'data_test'))
+measurements_in_train, measurements_in_test, num_correct_channels = get_measurements_train_test_from_dir(os.path.join(parent_path, dir_train_max), os.path.join(parent_path, dir_val_max))
+print('number of correct_channels:', num_correct_channels)
 
 measurements_in_train = hot_fix_label_issue(measurements_in_train)
 measurements_in_test = hot_fix_label_issue(measurements_in_test)
+
+print("measurements_in_train", len(measurements_in_train))
+print("measurements_in_test", len(measurements_in_test))
 
 class LSTMTrainable(tune.Trainable):
     def _setup(self, config):
@@ -35,8 +41,8 @@ class LSTMTrainable(tune.Trainable):
         ####################
         # INPUT SHAPE
         self.batch_size = config["batch_size"]
-        self.sequence_length = 10
-        self.dim = 42
+        self.sequence_length = 50
+        self.dim = num_correct_channels
         self.input_shape = (self.batch_size, self.sequence_length, self.dim)
 
         # OTHER STUFF
@@ -46,26 +52,42 @@ class LSTMTrainable(tune.Trainable):
         self.classes_dict = get_classes_dict(self.classes_list)
         self.num_classes = self.classes_list.size
         self.return_sequences = config["return_sequences"]
+        self.stateful = config["stateful"]
+        self.use_lstm = config["use_lstm"]
 
 
         ####################
         # LOAD DATA
         ####################
         #self.measurements_train, self.measurements_val = train_test_split(measurements)
-        self.measurements_train, _ = train_test_split(measurements_in_train, split=1.)
-        _, self.measurements_val = train_test_split(measurements_in_test, split=0.)
+        self.measurements_train = measurements_in_train
+        self.measurements_val = measurements_in_test
+        self.num_measurements_train = len(measurements_in_train)
+
         if config["data_preprocessing"] is "full":
             self.data_type = DataType.FULL
         else:
             self.data_type = DataType.HIGH_PASS
 
+        if not self.stateful:
+            self.tf_dataset_train = get_data_stateless(self.measurements_train, dimension=self.dim,
+                                                       sequence_length=self.sequence_length,
+                                                       return_sequences=self.return_sequences,
+                                                       data_type=self.data_type)
+            self.tf_dataset_val = get_data_stateless(self.measurements_val, dimension=self.dim,
+                                                     sequence_length=self.sequence_length,
+                                                     return_sequences=self.return_sequences,
+                                                     data_type=self.data_type)
+
         ####################
         # MODEL SETUP
         ####################
+
+
         if config["dim_hidden"] == 1000:
-            self.model = make_model_deeper(input_shape=self.input_shape, num_classes=self.num_classes, masking_value=self.masking_value, return_sequences=self.return_sequences)
+            self.model = make_model_deeper(input_shape=self.input_shape, num_classes=self.num_classes, masking_value=self.masking_value, return_sequences=self.return_sequences, stateful=self.stateful, LSTM=self.use_lstm)
         else:
-            self.model = make_model(input_shape=self.input_shape, dim_hidden=config["dim_hidden"], num_classes=self.num_classes, masking_value=self.masking_value, return_sequences=self.return_sequences)
+            self.model = make_model(input_shape=self.input_shape, dim_hidden=config["dim_hidden"], num_classes=self.num_classes, masking_value=self.masking_value, return_sequences=self.return_sequences, stateful=self.stateful)
         self.model.summary()
 
         ####################
@@ -134,9 +156,11 @@ class LSTMTrainable(tune.Trainable):
         self.train_accuracy.reset_states()
         self.val_accuracy.reset_states()
 
-        self.measurements_train, self.measurements_val = shuffle(self.measurements_train, self.measurements_val)
+        if self.stateful:
 
-        data_train, labels_train, starting_indices_train = get_batched_data(self.measurements_train,
+            self.measurements_train, self.measurements_val = shuffle(self.measurements_train, self.measurements_val)
+
+            data_train, labels_train, starting_indices_train = get_batched_data(self.measurements_train,
                                                                             classes_dict=self.classes_dict,
                                                                             masking_value=self.masking_value,
                                                                             data_type=self.data_type,
@@ -145,7 +169,7 @@ class LSTMTrainable(tune.Trainable):
                                                                             dimension=self.dim,
                                                                             return_sequences=self.return_sequences)
 
-        data_val, labels_val, starting_indices_val = get_batched_data(self.measurements_val,
+            data_val, labels_val, starting_indices_val = get_batched_data(self.measurements_val,
                                                                       classes_dict=self.classes_dict,
                                                                       masking_value=self.masking_value,
                                                                       data_type=self.data_type,
@@ -154,19 +178,27 @@ class LSTMTrainable(tune.Trainable):
                                                                       dimension=self.dim,
                                                                       return_sequences=self.return_sequences)
 
-        self.train_ds = tf.data.Dataset.from_tensor_slices((tf.constant(data_train), tf.constant(labels_train)))
-        self.val_ds = tf.data.Dataset.from_tensor_slices((tf.constant(data_val), tf.constant(labels_val)))
+            self.train_ds = tf.data.Dataset.from_tensor_slices((tf.constant(data_train), tf.constant(labels_train)))
+            self.val_ds = tf.data.Dataset.from_tensor_slices((tf.constant(data_val), tf.constant(labels_val)))
+
+        else:
+
+            self.train_ds = self.tf_dataset_train.shuffle(buffer_size=self.num_measurements_train).batch(self.batch_size)
+            self.val_ds = self.tf_dataset_val.shuffle(buffer_size=self.num_measurements_train).batch(self.batch_size)
 
         for idx, (X, y) in enumerate(self.train_ds):
-            if idx in starting_indices_train:
-                self.model.reset_states()
-                #print('reset', idx)
+
+            if self.stateful:
+                if idx in starting_indices_train:
+                    self.model.reset_states()
+                    #print('reset', idx)
             mask = self.model.layers[0](X)._keras_mask
             self.tf_train_step(X, y, mask)
 
         for idx, (X, y) in enumerate(self.val_ds):
-            if idx in starting_indices_val:
-                self.model.reset_states()
+            if self.stateful:
+                if idx in starting_indices_val:
+                    self.model.reset_states()
             mask = self.model.layers[0](X)._keras_mask
             self.tf_val_step(X, y, mask)
 
@@ -184,16 +216,18 @@ class LSTMTrainable(tune.Trainable):
 ray.init(num_cpus=12 if args.smoke_test else None)
 tune.run(
     LSTMTrainable,
-    stop={"training_iteration": 5 if args.smoke_test else 200},
+    stop={"training_iteration": 5 if args.smoke_test else 300},
     verbose=1,
-    name="lstm_roboy",
-    num_samples=5,
-    checkpoint_freq=50,
+    name="lstm_roboy_friday_5",
+    num_samples=8,
+    checkpoint_freq=20,
     checkpoint_at_end=True,
     config={
-        "lr": tune.sample_from(lambda spec: np.random.uniform(0.0001, 0.1)),
+        "lr": tune.sample_from(lambda spec: np.random.uniform(0.0001, 0.05)),
         "batch_size": tune.grid_search([64, 128]),
-        "dim_hidden": tune.grid_search([6, 8, 1000]),
+        "dim_hidden": tune.grid_search([6, 12, 50]),
         "return_sequences": tune.grid_search([True]),
-        "data_preprocessing": tune.grid_search(["full", "high_pass"])
+        "data_preprocessing": tune.grid_search(["high_pass"]),
+        "stateful": tune.grid_search([False]),
+        "use_lstm": tune.grid_search([False, True])
     })

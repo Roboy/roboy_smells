@@ -33,6 +33,8 @@ class DataType(Enum):
     GROUPED = auto()
     FULL = auto()
     HIGH_PASS = auto()
+    DIFFERENTIAL = auto()
+    """ Differential Data: 1st element is AVG of all channels, then the differentials for each channel """
 
     def is_grouped(self) -> bool:
         """
@@ -166,6 +168,8 @@ class Measurement:
             data_as = self.get_data(standardize, force, log=log)
         elif datatype is DataType.FULL:
             data_as = dp.full_pre_processing(self.get_data(standardize, force, log=log))
+        elif datatype is DataType.DIFFERENTIAL:
+            data_as = dp.differential_pre_processing(self.get_data(standardize, force, log=True))
         elif datatype is DataType.TOTAL_AVG:
             data_as = np.mean(self.get_data(standardize, force, log=log), axis=0)
         elif datatype is DataType.PEAK_AVG:

@@ -1,5 +1,5 @@
 # data_processing_old.py
-from typing import List, Optional, Tuple, Mapping, Dict
+from typing import List, Optional, Tuple, Mapping, Dict, Union, Iterable
 
 import numpy as np
 from .measurements import Measurement, DataRowsSet_t, WorkingChannels_t, Functionalisations_t, StandardizationType
@@ -24,7 +24,6 @@ def standardize_measurements(measurements: List[Measurement],
             if not measurement.is_reference() or not remove_ref:
                 clean_measurements.append(measurement)
         return clean_measurements
-
 
     raise ValueError('Unknown standardization type')
 
@@ -125,15 +124,22 @@ def balance_measurements_by_label(measurements: List[Measurement]) -> List[Measu
     return balanced_measurements
 
 
-BROKEN_THRESHOLD: float = 350.0
+BROKEN_THRESHOLD_OFFSET: float = 1.0
 
 
-def find_broken_channels(functionalisations: Functionalisations_t, data: DataRowsSet_t, debug: bool = True) -> WorkingChannels_t:
-    failure_bits = np.zeros((len(functionalisations)), bool)
+def find_broken_channels(functionalisations: Functionalisations_t, data: DataRowsSet_t,
+                         debug: bool = True) -> WorkingChannels_t:
+    """ Finds broken channels and returns a list of WORKING channels
+    channels are interpreted as broken if their minimum is the same as the smallest channels minimum
+    """
+    channel_min = None
     for measurement in data:
-        fail = np.array(data[measurement]['channels']) < BROKEN_THRESHOLD
-        failure_bits[fail] = True
+        if channel_min is None:
+            channel_min = np.array(data[measurement]['channels'])
+        channel_min = np.minimum(channel_min, np.array(data[measurement]['channels']))
 
+    total_min = np.min(channel_min)
+    failure_bits = channel_min < total_min + BROKEN_THRESHOLD_OFFSET
     if debug:
         fail_list = np.where(failure_bits)[0]
         print('Found %i failing channels:' % len(fail_list))
@@ -145,13 +151,20 @@ def find_broken_channels(functionalisations: Functionalisations_t, data: DataRow
 
 def find_broken_channels_multi_files(functionalisations: Functionalisations_t,
                                      all_data: Dict[str, DataRowsSet_t], debug: bool = True) -> WorkingChannels_t:
+    """ Finds broken channels and returns a list of WORKING channels
+    channels are interpreted as broken if their minimum is the same as the smallest channels minimum """
     failure_bits = np.zeros((len(functionalisations)), bool)
     for file in all_data:
         file_failure_bits = np.zeros((len(functionalisations)), bool)
+        channel_min = None
         for measurement in all_data[file]:
-            fail = np.array(all_data[file][measurement]['channels']) < BROKEN_THRESHOLD
-            failure_bits[fail] = True
-            file_failure_bits[fail] = True
+            if channel_min is None:
+                channel_min = np.array(all_data[file][measurement]['channels'])
+            channel_min = np.minimum(channel_min, np.array(all_data[file][measurement]['channels']))
+
+        total_min = np.min(channel_min)
+        file_failure_bits = channel_min < total_min + BROKEN_THRESHOLD_OFFSET
+        failure_bits[file_failure_bits] = True
         if debug:
             fail_list = np.where(file_failure_bits)[0]
             print('File %s:' % file)
@@ -204,13 +217,16 @@ def remove_broken_channels_multi_files(
 
 
 def get_labeled_measurements(data: DataRowsSet_t, correct_channels: WorkingChannels_t,
-                             functionalisations: Functionalisations_t, debug=False) \
+                             functionalisations: Functionalisations_t, start_offset: Union[int, Iterable[int]] = 0,
+                             debug=False) \
         -> List[Measurement]:
     """
     Extracts the individual Measurements from a DataRowSet by splitting every time the label changes
     :param data:
     :param correct_channels:
     :param functionalisations:
+    :param start_offset: Offset(s) for the start of every measurement ; negative = earlier start ; list = multiply measurements
+    !! Be careful: STANDARDIZATION might break if list if offsets is passed
     :param debug:
     :return:
     """
@@ -223,6 +239,10 @@ def get_labeled_measurements(data: DataRowsSet_t, correct_channels: WorkingChann
     current_altitude = 0
     time_stamp = ''
     measurements: List[Measurement] = []
+
+    if type(start_offset) == int:
+        start_offset = [start_offset]
+    min_start_offset = min(start_offset)
 
     for ts in data:
         row_data = data[ts]
@@ -241,10 +261,12 @@ def get_labeled_measurements(data: DataRowsSet_t, correct_channels: WorkingChann
             if current_label != '':
                 if debug:
                     print("new measurement; cl:", current_label, " - rdl:", row_data['label'])
-                meas = Measurement(current_measurement, current_label, time_stamp, correct_channels, functionalisations,
-                                   current_temperature, current_gas, current_humidity, current_pressure,
-                                   current_altitude)
-                measurements.append(meas)
+                for offs in start_offset:
+                    actual_offset = offs - min(min_start_offset, 0)
+                    meas = Measurement(current_measurement[actual_offset:], current_label, time_stamp, correct_channels, functionalisations,
+                                       current_temperature, current_gas, current_humidity, current_pressure,
+                                       current_altitude)
+                    measurements.append(meas)
 
             current_label = row_data['label']
             current_temperature = row_data['temperature']
@@ -253,7 +275,10 @@ def get_labeled_measurements(data: DataRowsSet_t, correct_channels: WorkingChann
             current_pressure = row_data['pressure']
             current_altitude = row_data['altitude']
             time_stamp = ts
-            current_measurement = None
+            if min_start_offset < 0 and current_measurement is not None:
+                current_measurement = current_measurement[min_start_offset:]
+            else:
+                current_measurement = None
 
         if current_label != '' and current_label == row_data['label']:
             if current_measurement is None:
@@ -262,9 +287,11 @@ def get_labeled_measurements(data: DataRowsSet_t, correct_channels: WorkingChann
                 current_measurement = np.vstack((current_measurement, row_data['channels']))
 
     if current_label != '':
-        meas = Measurement(current_measurement, current_label, time_stamp, correct_channels, functionalisations,
-                           current_temperature, current_gas, current_humidity, current_pressure, current_altitude)
-        measurements.append(meas)
+        for offs in start_offset:
+            actual_offset = offs - min(min_start_offset, 0)
+            meas = Measurement(current_measurement[actual_offset:], current_label, time_stamp, correct_channels, functionalisations,
+                               current_temperature, current_gas, current_humidity, current_pressure, current_altitude)
+            measurements.append(meas)
 
     return measurements
 
@@ -283,9 +310,9 @@ def high_pass_logdata(data: np.ndarray, init: Optional[np.ndarray] = None) -> np
         out_data[i] -= l1_filter
     return out_data
 
+
 def full_pre_processing(data: np.ndarray, init: Optional[np.ndarray] = None) -> np.ndarray:
-    """ Filters out slow trends from logarithmic data; zeroes the avg of the first 5 samples.
-     WILL NOT modify the passed array in-place"""
+    """ Full Pre-Processing Pipeline """
     out_data = high_pass_logdata(data, init)
     return low_pass_mean_std_measurement(out_data)
 
@@ -298,18 +325,45 @@ def butter_lowpass_filter(data, cutoff, fs, order):
     y = signal.filtfilt(b, a, data)
     return y
 
+
 def low_pass_mean_std_measurement(data, sample_rate=0.5, cutoff_freq=0.02, order=2):
     ys = np.zeros_like(data)
     for i in range(data.shape[1]):
         y = butter_lowpass_filter(data[:, i], cutoff_freq, sample_rate, order)
         ys[:, i] = y
 
-    #for i in range(data.shape[0]):
-        #mean = np.mean(ys[i, :])
-        #var = np.std(ys[i, :])
-        #ys[i, :] = (ys[i, :] - mean) / var
+    # for i in range(data.shape[0]):
+    # mean = np.mean(ys[i, :])
+    # var = np.std(ys[i, :])
+    # ys[i, :] = (ys[i, :] - mean) / var
 
     return ys
+
+
+def simple_low_pass_data(data):
+    out_data = np.copy(data)
+    l1_filter = data[0]
+    l1_factor = 2
+    for i in range(len(data)):
+        l1_filter = (l1_filter + data[i] * l1_factor) / (1.0 + l1_factor)
+        out_data[i] = l1_filter
+    return out_data
+
+
+def differential_pre_processing(data: np.ndarray) -> np.ndarray:
+    """ Differential Data: 1st element is AVG of all channels, then the differentials for each channel """
+    # Assuming the input data has already been transformed to log space
+    # and standardized (all channels are on the same level, now)
+
+    # Low-pass to filter out some noise
+    filtered_data = simple_low_pass_data(data)
+
+    # calculate average channel behaviour
+    avg_channel = np.mean(filtered_data, axis=1, keepdims=True)
+    out_data = np.hstack((avg_channel, filtered_data - avg_channel))
+
+    return out_data
+
 
 def get_measurement_peak_average(data: np.ndarray, num_samples=10) \
         -> np.ndarray:

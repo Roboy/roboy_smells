@@ -1,4 +1,5 @@
 import numpy as np
+import tensorflow as tf
 
 from e_nose import file_reader
 from e_nose import data_processing as dp
@@ -29,9 +30,41 @@ def low_pass_mean_std_measurement(measurements, sample_rate=0.5, cutoff_freq=0.0
         meas.data = ys
     return measurements
 
+def get_measurements_train_test_from_dir(train_dir='../data', test_dir='../data'):
+    functionalisations_train, correct_channels, data_train = file_reader.read_all_files_in_folder(train_dir)
+    functionalisations_test, correct_channels, data_test = file_reader.read_all_files_in_folder(test_dir)
+
+    combined = data_train.copy()
+    combined.update(data_test)
+
+    correct_channels = dp.find_broken_channels_multi_files(functionalisations_test, combined)
+    dp.find_broken_channels_multi_files
+
+    measurements_per_file_test = {}
+    for file in data_test:
+        measurements_per_file_test[file] = dp.get_labeled_measurements(data_test[file], correct_channels, functionalisations_test)
+
+    measurements_test = []
+    for file in measurements_per_file_test:
+        adding = dp.standardize_measurements(measurements_per_file_test[file], StandardizationType.LAST_REFERENCE)
+        if adding is not None:
+            measurements_test.extend(adding)
+
+    measurements_per_file_train = {}
+    for file in data_train:
+        measurements_per_file_train[file] = dp.get_labeled_measurements(data_train[file], correct_channels, functionalisations_train)
+
+    measurements_train = []
+    for file in measurements_per_file_train:
+        adding = dp.standardize_measurements(measurements_per_file_train[file], StandardizationType.LAST_REFERENCE)
+        if adding is not None:
+            measurements_train.extend(adding)
+
+    return np.array(measurements_train), np.array(measurements_test), np.count_nonzero(correct_channels)
 
 def get_measurements_from_dir(directory_name='../data'):
     functionalisations, correct_channels, data = file_reader.read_all_files_in_folder(directory_name)
+    print(np.count_nonzero(correct_channels))
     measurements_per_file = {}
     for file in data:
         measurements_per_file[file] = dp.get_labeled_measurements(data[file], correct_channels, functionalisations)
@@ -153,9 +186,66 @@ def get_batched_data(measurements, classes_dict, masking_value, data_type=DataTy
         for i, y in enumerate(batches_labels_done):
             batches_labels_done_stateless[i] = y[:, 0, :]
         batches_labels_done = batches_labels_done_stateless
-    print('batches_labels_done.shape: ', batches_labels_done.shape)
+    #print('batches_labels_done.shape: ', batches_labels_done.shape)
     #print('batches_labels_done: ', batches_labels_done)
 
 
     return batches_data_done, batches_labels_done, starting_indices
 
+
+def get_data_stateless(measurements, dimension=35, return_sequences=True, augment=False, sequence_length=50, masking_value=100., batch_size=64, classes_dict=None, data_type=DataType.HIGH_PASS):
+    if classes_dict == None:
+        classes_list = ['coffee_powder', 'isopropanol', 'orange_juice', 'raisin', 'red_wine', 'wodka']
+        classes_dict = {}
+        for i, c in enumerate(classes_list):
+            classes_dict[c] = i
+
+    padding = batch_size - len(measurements)%batch_size
+
+    full_length = len(measurements) + padding
+
+    full_data = np.ones(shape=(full_length, sequence_length, dimension)) * masking_value
+
+    if return_sequences:
+        full_labels = np.empty(shape=(full_length, sequence_length, 1), dtype=int)
+    else:
+        full_labels = np.empty(shape=(full_length, 1), dtype=int)
+    labels_shape = full_labels.shape[1:]
+
+    for i, m in enumerate(measurements):
+        d = m.get_data_as(data_type)
+        if d.shape[1] != dimension:
+            raise ValueError("Dimension mismatch")
+        if d.shape[0] < sequence_length:
+            raise ValueError("Measurement too short!")
+        full_data[i] = m.get_data_as(data_type)[:sequence_length, :]
+        full_labels[i] = np.ones(shape=labels_shape, dtype=int)*classes_dict[m.label]
+
+    #indices = np.arange(full_labels.shape[0])
+    #np.random.shuffle(indices)
+
+    print(full_data.shape, full_labels.shape)
+
+    return tf.data.Dataset.from_tensor_slices((tf.constant(full_data), tf.constant(full_labels)))
+
+'''
+measurements = get_measurements_from_dir('../data_test')[:6]
+data, labels = get_data_stateless(measurements, return_sequences=False , dimension=42)
+print(labels)
+
+import tensorflow as tf
+dataset = tf.data.Dataset.from_tensor_slices((tf.constant(data), tf.constant(labels)))
+
+dataset = dataset.batch(2)
+
+print(dataset)
+
+for i in range(2):
+    if i > 0:
+        dataset = dataset.shuffle(len(measurements))
+    for X, y in dataset:
+        #print(X)
+        print(y)
+    print('#############################################################')
+
+'''
