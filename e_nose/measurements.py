@@ -159,7 +159,7 @@ class Measurement:
         if datatype in cache and not force and standardize:
             return cache[datatype]
 
-        print('requesting datatype', datatype)
+        #print('requesting datatype', datatype)
 
         data_as: Optional[np.ndarray] = None
         if datatype is DataType.LAST_AVG:

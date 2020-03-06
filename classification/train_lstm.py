@@ -12,16 +12,18 @@ from e_nose.measurements import DataType
 
 # STUFF
 parent_path = os.getcwd()
-print(parent_path)
 parser = argparse.ArgumentParser()
 parser.add_argument(
     "--smoke-test", action="store_true", help="Finish quickly for testing")
 args, _ = parser.parse_known_args()
 gpus = []
 
+dir_train_max = '../data_train'
+dir_val_max = '../data_test'
+
 # LOAD FROM FILES
 #measurements = get_measurements_from_dir(os.path.join(parent_path, '../data'))
-measurements_in_train, measurements_in_test, num_correct_channels = get_measurements_train_test_from_dir(os.path.join(parent_path, 'data_train'), os.path.join(parent_path, 'data_test'))
+measurements_in_train, measurements_in_test, num_correct_channels = get_measurements_train_test_from_dir(os.path.join(parent_path, dir_train_max), os.path.join(parent_path, dir_val_max))
 print('number of correct_channels:', num_correct_channels)
 
 measurements_in_train = hot_fix_label_issue(measurements_in_train)
@@ -51,6 +53,7 @@ class LSTMTrainable(tune.Trainable):
         self.num_classes = self.classes_list.size
         self.return_sequences = config["return_sequences"]
         self.stateful = config["stateful"]
+        self.use_lstm = config["use_lstm"]
 
 
         ####################
@@ -82,7 +85,7 @@ class LSTMTrainable(tune.Trainable):
 
 
         if config["dim_hidden"] == 1000:
-            self.model = make_model_deeper(input_shape=self.input_shape, num_classes=self.num_classes, masking_value=self.masking_value, return_sequences=self.return_sequences, stateful=self.stateful)
+            self.model = make_model_deeper(input_shape=self.input_shape, num_classes=self.num_classes, masking_value=self.masking_value, return_sequences=self.return_sequences, stateful=self.stateful, LSTM=self.use_lstm)
         else:
             self.model = make_model(input_shape=self.input_shape, dim_hidden=config["dim_hidden"], num_classes=self.num_classes, masking_value=self.masking_value, return_sequences=self.return_sequences, stateful=self.stateful)
         self.model.summary()
@@ -228,5 +231,6 @@ tune.run(
         "dim_hidden": tune.grid_search([8, 10, 32, 64]),
         "return_sequences": tune.grid_search([True]),
         "data_preprocessing": tune.grid_search(["high_pass"]),
-        "stateful": tune.grid_search([False])
+        "stateful": tune.grid_search([False]),
+        "use_lstm": tune.grid_search([False, True])
     })
