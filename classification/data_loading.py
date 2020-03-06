@@ -1,4 +1,5 @@
 import numpy as np
+import tensorflow as tf
 
 from e_nose import file_reader
 from e_nose import data_processing as dp
@@ -63,6 +64,7 @@ def get_measurements_train_test_from_dir(train_dir='../data', test_dir='../data'
 
 def get_measurements_from_dir(directory_name='../data'):
     functionalisations, correct_channels, data = file_reader.read_all_files_in_folder(directory_name)
+    print(np.count_nonzero(correct_channels))
     measurements_per_file = {}
     for file in data:
         measurements_per_file[file] = dp.get_labeled_measurements(data[file], correct_channels, functionalisations)
@@ -190,3 +192,51 @@ def get_batched_data(measurements, classes_dict, masking_value, data_type=DataTy
 
     return batches_data_done, batches_labels_done, starting_indices
 
+
+def get_data_stateless(measurements, dimension=35, return_sequences=True, augment=False, sequence_length=50, classes_dict=None, data_type=DataType.HIGH_PASS):
+    if classes_dict == None:
+        classes_list = ['coffee_powder', 'isopropanol', 'orange_juice', 'raisin', 'red_wine', 'wodka']
+        classes_dict = {}
+        for i, c in enumerate(classes_list):
+            classes_dict[c] = i
+
+    full_data = np.empty(shape=(len(measurements), sequence_length, dimension))
+
+    if return_sequences:
+        full_labels = np.empty(shape=(len(measurements), sequence_length, 1), dtype=int)
+    else:
+        full_labels = np.empty(shape=(len(measurements), 1), dtype=int)
+    labels_shape = full_labels.shape[1:]
+
+    for i, m in enumerate(measurements):
+        full_data[i] = m.get_data_as(data_type)[:sequence_length, :]
+        full_labels[i] = np.ones(shape=labels_shape, dtype=int)*classes_dict[m.label]
+
+    indices = np.arange(full_labels.shape[0])
+    np.random.shuffle(indices)
+
+    print(full_data.shape, full_labels.shape)
+
+    return tf.data.Dataset.from_tensor_slices((tf.constant(full_data), tf.constant(full_labels)))
+
+'''
+measurements = get_measurements_from_dir('../data_test')[:6]
+data, labels = get_data_stateless(measurements, return_sequences=False , dimension=42)
+print(labels)
+
+import tensorflow as tf
+dataset = tf.data.Dataset.from_tensor_slices((tf.constant(data), tf.constant(labels)))
+
+dataset = dataset.batch(2)
+
+print(dataset)
+
+for i in range(2):
+    if i > 0:
+        dataset = dataset.shuffle(len(measurements))
+    for X, y in dataset:
+        #print(X)
+        print(y)
+    print('#############################################################')
+
+'''

@@ -48,9 +48,17 @@ lstm.summary()
 lstm.load_weights(model_name=model_name, checkpoint=checkpoint, path='./models/rnn/')
 
 for m in measurements:
-    print(m.get_data_as(DataType.HIGH_PASS).shape)
+    max_length = m.data.shape[0]
+    print('Ground Truth: ', m.label)
 
-    print(lstm.predict_live(m))
+    for i in range(1, max_length):
+        m.data = m.data[:i, :]
+        print(m.data.shape)
+        data = m.get_data_as(DataType.HIGH_PASS)
+        print(data.shape)
+
+        print(lstm.predict_live(m))
+        input('next')
 
 '''
 
