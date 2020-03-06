@@ -347,7 +347,7 @@ def differential_pre_processing(data: np.ndarray) -> np.ndarray:
 
     # calculate average channel behaviour
     avg_channel = np.mean(filtered_data, axis=1, keepdims=True)
-    out_data = np.vstack(avg_channel, filtered_data)
+    out_data = np.hstack((avg_channel, filtered_data - avg_channel))
 
     return out_data
 
