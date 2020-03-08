@@ -14,8 +14,6 @@ class eNoseClassificationTestPublisher():
             print('no ROS connection')
 
 
-
-
 if __name__ == '__main__':
     try:
         encp = eNoseClassificationTestPublisher()
