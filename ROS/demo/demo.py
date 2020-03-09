@@ -14,6 +14,11 @@ config = {
         "bg": '#891610',
         "fg": 'white'
     },
+    "pinot_noir": {
+        "text": "Pinot Noir",
+        "bg": '#891610',
+        "fg": 'white'
+    },
     "orange_juice": {
         "text": "Orange Juice",
         "bg": '#ffa500',
@@ -24,8 +29,8 @@ config = {
         "bg": 'white',
         "fg": 'black'
     },
-    "vodka": {
-        "text": "Vodka",
+    "wodka": {
+        "text": "Wodka",
         "bg": '#031159',
         "fg": 'white'
     },
