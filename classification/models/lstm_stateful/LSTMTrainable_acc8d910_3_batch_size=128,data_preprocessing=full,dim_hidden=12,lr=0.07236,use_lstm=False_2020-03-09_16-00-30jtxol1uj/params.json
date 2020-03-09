@@ -1,0 +1,7 @@
+{
+  "batch_size": 128,
+  "data_preprocessing": "full",
+  "dim_hidden": 12,
+  "lr": 0.07235997513440025,
+  "use_lstm": false
+}

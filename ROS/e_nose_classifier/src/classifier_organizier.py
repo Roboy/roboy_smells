@@ -36,7 +36,8 @@ class ClassifierOrganizer:
         self.use_neural_network = False
 
         if self.use_neural_network:
-            self.classifier = SmelLSTM(input_shape=(1, 1, num_working_channels), num_classes=6, hidden_dim_simple=6, stateful=False)
+            self.lstm1 = SmelLSTM(input_shape=(1, 50, num_working_channels), num_classes=6, hidden_dim_simple=6, stateful=False)
+            self.lstm2 = SmelLSTM(input_shape=(1, 1, num_working_channels), num_classes=6, hidden_dim_simple=12, stateful=True)
 # self.model_name = "LSTMTrainable_b625122c_11_batch_size=64,dim_hidden=16,lr=0.073956,return_sequences=True_2020-03-04_19-04-41c78mu_or"
             # self.model_name = 'LSTMTrainable_15750966_1740_batch_size=128,dim_hidden=6,lr=0.004831,return_sequences=True_2020-03-05_08-08-45fs4p25pg' 
             # self.model_name = 'LSTMTrainable_9c63b3de_15_batch_size=128,data_preprocessing=high_pass,dim_hidden=6,lr=0.018191,return_sequences=True_2020-03-05_14-41-14slhxixe7'
@@ -45,10 +46,13 @@ class ClassifierOrganizer:
             #self.model_name = 'LSTMTrainable_231f7674_15_batch_size=128,data_preprocessing=high_pass,dim_hidden=12,lr=0.050039,stateful=True,use_lstm=True_2020-03-06_21-24-4970osptsr'
 
             self.model_name = 'LSTMTrainable_b8effb2c_12_batch_size=64,data_preprocessing=full,dim_hidden=6,lr=0.031576,use_lstm=True_2020-03-09_15-44-15nhhqrc38'
+            self.model_name_2 = 'LSTMTrainable_acc8d910_3_batch_size=128,data_preprocessing=full,dim_hidden=12,lr=0.07236,use_lstm=False_2020-03-09_16-00-30jtxol1uj'
 
-            self.classifier.summary()
-            self.classifier.load_weights(self.model_name, checkpoint=260,
+            #self.classifier.summary()
+            self.lstm1.load_weights(self.model_name, checkpoint=260,
                                          path='classification/models/lstm_stateless/')
+            self.lstm2.load_weights(self.model_name, checkpoint=120,
+                                    path='classification/models/lstm_stateful/')
 
         else:
             self.datatype = DataType.HIGH_PASS
@@ -76,7 +80,7 @@ class ClassifierOrganizer:
         self.pub_meas.send_classification(data_for_classifier)
 
         if self.use_neural_network:
-            prediction = self.classifier.predict_live(data)
+            prediction = self.lstm2.predict_live(data)
             self.pub_test.send_classification(prediction)
             self.pub.send_classification(prediction)
         else:
