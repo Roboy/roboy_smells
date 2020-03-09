@@ -1,11 +1,11 @@
 from ROS.e_nose_classifier.src.e_nose_classification_publisher import eNoseClassificationPublisher
 from ROS.e_nose_classifier.src.e_nose_classification_test import eNoseClassificationTestPublisher
 from ROS.e_nose_classifier.src.e_nose_subscriber import eNoseSubscriber
-from ROS.e_nose_classifier.src.online_reader import OnlineReader
 from ROS.e_nose_classifier.src.e_nose_measurement_publisher import eNoseMeasurementPublisher
 from classification.lstm_model import SmelLSTM
 from classification.knn import KNN
 from e_nose.measurements import DataType, StandardizationType
+from e_nose.online_reader import OnlineReader
 import time
 import numpy as np
 import rospy

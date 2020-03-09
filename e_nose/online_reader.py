@@ -2,8 +2,10 @@ from typing import List
 
 import numpy as np
 
+from e_nose.EventHook import EventHook
 from e_nose.file_reader import get_sensor_spec
-from e_nose.measurements import Measurement, StandardizationType, DataRowsSet_t, DataRow_t
+from e_nose.measurements import Measurement, StandardizationType, DataRowsSet_t, DataRow_t, Functionalisations_t, \
+    WorkingChannels_t
 
 
 class OnlineReader:
@@ -16,6 +18,8 @@ class OnlineReader:
 
     def __init__(self, sensor_id: int,
                  standardization: StandardizationType = StandardizationType.LOWPASS_FILTER,
+                 override_functionalisations: Functionalisations_t = None,
+                 override_working_channels: WorkingChannels_t = None,
                  max_history_length: int = 100_000):
         """
 
@@ -29,12 +33,18 @@ class OnlineReader:
         self.log_lowpass_buffer: np.ndarray = np.empty((max_history_length, 64))
         """ log_lowpass data buffer that contains empty rows for all data that might come in one day """
         self.current_length: int = 0
+        self.invoke_callback: EventHook = EventHook()
+        self.invoke_at = 99999999999
         """ current length of the data buffer """
         self.log_lowpass_current = None
         self.max_history_length: int = max_history_length
         self.standardization: StandardizationType = standardization
 
         self.functionalisations, self.working_channels = get_sensor_spec(sensor_id)
+        if override_functionalisations is not None:
+            self.functionalisations = override_functionalisations
+        if override_working_channels is not None:
+            self.working_channels = override_working_channels
 
     def set_standardization_type(self, standardization: StandardizationType):
         self.standardization = standardization
@@ -51,10 +61,25 @@ class OnlineReader:
 
         self.current_length += 1
 
-        #if len(self.data.shape) > self.max_history_length:
+        if self.current_length > self.invoke_at:
+            self.invoke_at = 99999999999
+            self.invoke_callback()
+
+        # if len(self.data.shape) > self.max_history_length:
         #    remove = len(self.data.shape) - self.max_history_length
         #    self.data = np.delete(self.data, range(remove))
         #    self.log_lowpass = np.delete(self.log_lowpass, range(remove))
+
+    def set_trigger_in(self, in_n: int = 50):
+        """ Sets a trigger to call the given callback function in in_n steps """
+        self.set_trigger_at(self.current_length + in_n)
+
+    def set_trigger_at(self, at: int = 50):
+        """ Sets a trigger to call the given callback function at the given sample-count """
+        self.invoke_at = at
+
+    def get_since_n_as_measurement(self, n):
+        return self.get_last_n_as_measurement(self.current_length - n)
 
     def get_last_n_as_measurement(self, n: int = 300) -> Measurement:
         """
@@ -73,13 +98,15 @@ class OnlineReader:
             measurement.set_reference(None, StandardizationType.BEGINNING_AVG)
 
         elif self.standardization == StandardizationType.LOWPASS_FILTER:
-            measurement.set_reference(self.log_lowpass_buffer[self.current_length-n], StandardizationType.LOWPASS_FILTER)
+            measurement.set_reference(self.log_lowpass_buffer[self.current_length - n],
+                                      StandardizationType.LOWPASS_FILTER)
 
         elif self.standardization == StandardizationType.LAST_REFERENCE:
             # We cannot actually perform this standardization as we hav got no idea what the last
             # reference measurement might have been...
             # To simulate the same behaviour though, we just set it to the average of the last 10 samples just before
-            reference = np.mean(np.log(self.data_buffer[self.current_length - (n + 10):self.current_length - n, :]), axis=0)
+            reference = np.mean(np.log(self.data_buffer[self.current_length - (n + 10):self.current_length - n, :]),
+                                axis=0)
             measurement.set_reference(reference, StandardizationType.LAST_REFERENCE)
 
         return measurement
@@ -123,17 +150,18 @@ class FileAsOnlineReader:
         """ Returns the current label of the ground truth data """
         pos = self.currpos
         if pos >= len(self.indices):
-            pos = len(self.indices)-1
+            pos = len(self.indices) - 1
         return self.data_at_index(pos)['label']
 
     def get_last_n_as_measurement(self, n: int = 300) -> Measurement:
         return self.reader.get_last_n_as_measurement(n)
 
-    def get_all_measurements_every(self, n: int, m: int = -1, add_labels: bool = True) -> List[Measurement]:
+    def get_all_measurements_every(self, n: int, m: int = -1, initial_offset: int = 10, add_labels: bool = True) -> List[Measurement]:
         """ Plays the whole file and creates a Measurement object
             over the length of the last m samples every n samples
             :param n: returns a new Measurement every n
             :param m: each Measurement object encompasses the previous m samples
+            :param initial_offset: Skip the first few samples (required for StandardizationType.LAST_REFERENCE)
             :param add_labels: whether to add the ground truth labels to the data
         """
 
@@ -142,12 +170,13 @@ class FileAsOnlineReader:
 
         if m > n:
             # skip the first few samples so the first measurement object has enough to look back on
-            self.feed_samples(m-n)
+            self.feed_samples(m - n)
+        self.feed_samples(initial_offset)
 
         measurements: List[Measurement] = []
         while self.currpos < len(self.indices):
             self.feed_samples(n)
-            #print(self.currpos)
+            # print(self.currpos)
             meas = self.get_last_n_as_measurement(m)
             meas.label = self.get_current_label()
             measurements.append(meas)
