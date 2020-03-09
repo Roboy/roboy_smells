@@ -9,7 +9,9 @@ class eNoseMeasurementPublisher():
 
     def send_classification(self, measurement):
         if not rospy.is_shutdown():
-            self.pub_meas.publish(measurement)
+            msg = Float32MultiArray()
+            msg.data = measurement
+            self.pub_meas.publish(msg)
         else:
             print('no ROS connection')
 
