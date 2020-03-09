@@ -34,7 +34,8 @@ class ClassifierOrganizer:
         self.from_sample = 0
         self.sub.onUpdate += self.got_new_sample
         self.online.invoke_callback += self.gathered_data
-        self.use_neural_network = False
+        self.use_neural_network = True
+        self.datatype = DataType.FULL
 
         if self.use_neural_network:
             self.lstm1 = SmelLSTM(input_shape=(1, 50, num_working_channels), num_classes=6, hidden_dim_simple=6, stateful=False)
@@ -54,7 +55,6 @@ class ClassifierOrganizer:
             self.lstm2.load_weights(self.model_name_2, checkpoint=120, path='classification/models/lstm_stateful/')
 
         else:
-            self.datatype = DataType.HIGH_PASS
             self.classifier = KNN(num_working_channels, data_dir='data', data_type=self.datatype)
             self.classifier2 = GNB(data_dir='data', data_type=self.datatype)
         print('ros e_nose classification node started successfully')
@@ -62,10 +62,12 @@ class ClassifierOrganizer:
     def startMeas(self):
         try:
             while True:
+                self.pub_test.send_classification('ref')
+                self.pub.send_classification('ref')
                 var = input("Please enter something: ")
                 print('restarting classification', var)
                 self.from_sample = self.online.current_length
-                self.online.set_trigger_in(4)
+                self.online.set_trigger_in(9)
                 if var.lower() == 'q':
                     break
         except KeyboardInterrupt:
