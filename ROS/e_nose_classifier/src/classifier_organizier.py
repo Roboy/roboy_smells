@@ -36,6 +36,7 @@ class ClassifierOrganizer:
         self.online.invoke_callback += self.gathered_data
         self.use_neural_network = True
         self.datatype = DataType.FULL
+        self.recording = False
 
         if self.use_neural_network:
             self.lstm1 = SmelLSTM(input_shape=(1, 50, num_working_channels), num_classes=6, hidden_dim_simple=6, stateful=False)
@@ -65,11 +66,19 @@ class ClassifierOrganizer:
                 self.pub_test.send_classification('ref')
                 self.pub.send_classification('ref')
                 var = input("Please enter something: ")
-                print('restarting classification', var)
-                self.from_sample = self.online.current_length
-                self.online.set_trigger_in(9)
                 if var.lower() == 'q':
                     break
+                if not self.recording:
+                    print('restarting classification', var)
+                    self.from_sample = self.online.current_length
+                    self.online.set_trigger_in(9)
+                    self.recording = True
+                else:
+                    self.recording = False
+                    self.online.invoke_at = 99999999999
+                    self.pub_test.send_classification('ref')
+                    self.pub.send_classification('ref')
+
         except KeyboardInterrupt:
             print('Interrupted...')
 
@@ -94,8 +103,8 @@ class ClassifierOrganizer:
                 self.pub_test.send_classification(prediction_gnb)
                 self.pub.send_classification(prediction_gnb)
             else:
-                self.pub_test.send_classification('no_data')
-                self.pub.send_classification('no_data')
+                self.pub_test.send_classification('ref')
+                self.pub.send_classification('ref')
         self.online.set_trigger_in(2)
         print('sequence length:',data_for_classifier.shape[0])
 
