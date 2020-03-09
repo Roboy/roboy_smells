@@ -2,15 +2,15 @@
 
 import time
 import rospy
-# from e_nose.msg import e_nose_raw
-from ROS.e_nose_raw_publisher.msg import e_nose_raw
-from ROS.e_nose_raw_publisher.src.e_nose_connector import eNoseConnector
+from e_nose_raw_publisher.msg import e_nose_raw
+#from ROS.e_nose_raw_publisher.msg import e_nose_raw
+#from e_nose_connector import eNoseConnector
 
 
 class eNoseRawNode:
 
     def __init__(self):
-        self.eNose = eNoseConnector()
+        #self.eNose = eNoseConnector()
         self.pub_e_nose = rospy.Publisher('enose_sensordata', e_nose_raw, queue_size=10)
         if rospy.is_shutdown:
             rospy.init_node('e_nose_sensor', anonymous=False)

@@ -1,11 +1,11 @@
 import time
 from datetime import datetime
 from datetime import timedelta
-from test_equiment.Classes.ServoConnector import ServoConnecor
-from test_equiment.Classes.TimeOverCalculator import TimeCalculator
-from test_equiment.Classes.BMEConnector import BMEConnector
-from ROS.e_nose_raw_publisher.src.e_nose_connector import eNoseConnector
-from ROS.e_nose_raw_publisher.src.e_nose_node import eNoseRawNode
+from ServoConnector import ServoConnecor
+from TimeOverCalculator import TimeCalculator
+from BMEConnector import BMEConnector
+from e_nose_connector import eNoseConnector
+from e_nose_node import eNoseRawNode
 from random import choices
 
 
@@ -51,8 +51,8 @@ class TestEquimentRunner:
                         timer.nextPos(currentPos)
                         while timer.nextSample():
                             eNoseSample = eNose.detect()
-                            bme = bme.detect()
-                            e_nose_ros.run_nonstandalone(eNoseSample, bme, labels[currentPos])
+                            bme_raw = bme.detect()
+                            e_nose_ros.run_nonstandalone(eNoseSample, bme_raw, labels[currentPos])
                             time.sleep(0.5)
                         time_now = datetime.now()
                         feedback = time_now.strftime("%H:%M:%S") + '  current sample ' + labels[
