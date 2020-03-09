@@ -82,13 +82,22 @@ class SmelLSTM:
         self.model.load_weights(path_to_model)
 
     def predict_from_batch(self, data_batch):
-        if len(data_batch.shape) < 2:
+        print(len(data_batch.shape))
+        if len(data_batch.shape) < 3:
             data_batch = np.expand_dims(data_batch, axis=0)
-            if len(data_batch) < 2:
+            if len(data_batch.shape) < 2:
                 data_batch = np.expand_dims(data_batch, axis=0)
+        print(data_batch.shape)
 
         y = self.model(data_batch, training=False)
-        prediction = self.classes_list[np.argmax(y.numpy(), -1).flatten()[0]]
+        class_indices = np.argmax(y.numpy(), -1).flatten()
+        print("class_indices", class_indices)
+        #print("class_indices", type(class_indices))
+        classes = [self.classes_list[c] for c in class_indices]
+        counts = np.bincount(class_indices)
+        class_index_most = np.argmax(counts)
+        print(classes)
+        prediction = self.classes_list[class_index_most]
         return prediction
 
     def predict_live(self, measurement):
