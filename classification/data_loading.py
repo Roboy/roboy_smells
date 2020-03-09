@@ -196,7 +196,7 @@ def get_batched_data(measurements, classes_dict, masking_value, data_type=DataTy
 
 def get_data_stateless(measurements, dimension=35, return_sequences=True, augment=False, sequence_length=50, masking_value=100., batch_size=64, classes_dict=None, data_type=DataType.HIGH_PASS):
     if classes_dict == None:
-        classes_list = ['coffee_powder', 'isopropanol', 'orange_juice', 'raisin', 'red_wine', 'wodka']
+        classes_list = ['acetone', 'isopropanol', 'orange_juice', 'pinot_noir', 'raisin', 'wodka']
         classes_dict = {}
         for i, c in enumerate(classes_list):
             classes_dict[c] = i
