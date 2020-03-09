@@ -4,7 +4,7 @@ from std_msgs.msg import String
 import tkinter as tk
 
 config = {
-    "none": {
+    "ref": {
         "text": "No Data",
         "bg": 'black',
         "fg": 'white'
@@ -37,6 +37,11 @@ config = {
     "raisin": {
         "text": "Raisin",
         "bg": '#225903',
+        "fg": 'white'
+    },
+    "aceton": {
+        "text": "Acetone",
+        "bg": 'black',
         "fg": 'white'
     },
     "coffee": {

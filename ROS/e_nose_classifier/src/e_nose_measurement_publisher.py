@@ -1,17 +1,25 @@
 #!/usr/bin/env python
 import rospy
-from std_msgs.msg import Float32MultiArray
+from rospy.numpy_msg import numpy_msg
+from rospy_tutorials.msg import Floats
 
+import matplotlib.pyplot as plt
 
 class eNoseMeasurementPublisher():
     def __init__(self):
-        self.pub_meas = rospy.Publisher('e_nose_measurements', Float32MultiArray, queue_size=10)
+        self.pub_meas = rospy.Publisher('e_nose_measurements', numpy_msg(Floats), queue_size=10)
 
     def send_classification(self, measurement):
+        print('send current measurement to e_nose_measurements')
         if not rospy.is_shutdown():
-            msg = Float32MultiArray()
-            msg.data = measurement
-            self.pub_meas.publish(msg)
+            print(measurement.shape)
+            if measurement.shape[0] > 30:
+                print(measurement)
+                #plt.plot(measurement)
+                #plt.show()
+            self.pub_meas.publish(measurement.reshape(-1))
+            print(measurement.reshape(-1).shape)
+            print('published measurement')
         else:
             print('no ROS connection')
 

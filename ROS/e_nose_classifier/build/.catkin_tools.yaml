@@ -1,0 +1,6 @@
+devel_space: /home/roboy/workspace/Roboy/src/roboy_smells/roboy_smells/ROS/e_nose_classifier/devel
+install: false
+install_space: /home/roboy/workspace/Roboy/src/roboy_smells/roboy_smells/ROS/e_nose_classifier/install
+profile: default
+source_space: /home/roboy/workspace/Roboy/src/roboy_smells/roboy_smells/ROS/e_nose_classifier/src
+workspace: /home/roboy/workspace/Roboy/src/roboy_smells/roboy_smells/ROS/e_nose_classifier

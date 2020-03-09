@@ -82,10 +82,10 @@ class ClassificationVoicer:
 
         if ROS:
             print('Initialiting ROS node...')
-            rospy.init_node('e_nose_classification_voicer', anonymous=False)
+            #rospy.init_node('e_nose_classification_voicer', anonymous=False)
             print('Initialiting Subcomponents...')
 
-            rospy.Subscriber("/e_nose_classification", String, self.callback)
+            rospy.Subscriber("/classification", String, self.callback)
             print('ros e_nose classification VOICER node started successfully')
 
     def run(self):

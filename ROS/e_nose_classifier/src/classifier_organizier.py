@@ -55,9 +55,8 @@ class ClassifierOrganizer:
             self.lstm1.load_weights(self.model_name, checkpoint=260, path='classification/models/lstm_stateless/')
             self.lstm2.load_weights(self.model_name_2, checkpoint=120, path='classification/models/lstm_stateful/')
 
-        else:
-            self.classifier = KNN(num_working_channels, data_dir='data', data_type=self.datatype)
-            self.classifier2 = GNB(data_dir='data', data_type=self.datatype)
+            self.classifier = KNN(num_working_channels, data_dir='data', data_type=DataType.HIGH_PASS)
+            self.classifier2 = GNB(data_dir='data', data_type=DataType.HIGH_PASS)
         print('ros e_nose classification node started successfully')
 
     def startMeas(self):
@@ -94,7 +93,7 @@ class ClassifierOrganizer:
             prediction = self.lstm2.predict_live(data)
             self.pub_test.send_classification(prediction)
             self.pub.send_classification(prediction)
-        else:
+            print('prediction smellstm', prediction)
             if (data_for_classifier.shape[0] > 40):
                 prediction = self.classifier.predict(data_for_classifier)
                 prediction_gnb = self.classifier2.predict(data_for_classifier)
@@ -102,9 +101,6 @@ class ClassifierOrganizer:
                 print('prediction_gnb: ', prediction_gnb)
                 self.pub_test.send_classification(prediction_gnb)
                 self.pub.send_classification(prediction_gnb)
-            else:
-                self.pub_test.send_classification('ref')
-                self.pub.send_classification('ref')
         self.online.set_trigger_in(2)
         print('sequence length:',data_for_classifier.shape[0])
 
