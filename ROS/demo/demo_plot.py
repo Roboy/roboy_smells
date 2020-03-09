@@ -1,7 +1,11 @@
 # !/usr/bin/env python
 import rospy
 from std_msgs.msg import String
+from e_nose_raw_publisher.msg import e_nose_raw
 import tkinter as tk
+
+import threading
+import time
 
 from matplotlib.backends.backend_tkagg import ( FigureCanvasTkAgg, NavigationToolbar2Tk)
 # Implement the default Matplotlib key bindings.
@@ -19,7 +23,7 @@ class FullScreenApp(tk.Frame):
             master.winfo_screenwidth() - pad, master.winfo_screenheight() - pad))
         master.bind('<Escape>', self.toggle_geom)
 
-        self.sensor_data = []
+        self.sensor_data = np.zeros((0,64))
 
         fig = Figure(figsize=(5, 4), dpi=100)
         t = np.arange(0, 3, .01)
@@ -34,9 +38,9 @@ class FullScreenApp(tk.Frame):
         self.canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
 
         def on_key_press(event):
-            print("you pressed {}".format(event.key))
             key_press_handler(event, self.canvas, toolbar)
             self.gen_random_data()
+            self.canvas.draw()
 
         self.canvas.mpl_connect("key_press_event", on_key_press)
 
@@ -48,31 +52,41 @@ class FullScreenApp(tk.Frame):
         button = tk.Button(master=master, text="Quit", command=_quit)
         button.pack(side=tk.BOTTOM)
 
+        root.after(300, self.update_canvas)
+
+    def update_canvas(self):
+        self.canvas.draw()
+        root.after(1000, self.update_canvas)
+
+
     def toggle_geom(self, event):
         geom = self.master.winfo_geometry()
-        print(geom, self._geom)
         self.master.geometry(self._geom)
         self._geom = geom
 
-    def update_sensor_data(self, sensor_data):
+    def update_sensor_values(self, sd):
         self.ax.clear()
-        self.sensor_data.append(sensor_data)
+        self.sensor_data = np.vstack((self.sensor_data, np.expand_dims(sd, axis=0)))
+        self.sensor_data = self.sensor_data[:100, :]
+        print(self.sensor_data.shape)
         self.ax.plot(self.sensor_data)
-        self.canvas.draw()
+        self.ax.set_yscale('log')
 
     def gen_random_data(self):
-        self.update_sensor_data(np.random.rand(64))
+        print("2")
+        #self.update_sensor_values(np.random.rand(64))
 
 root = tk.Tk()
 app = FullScreenApp(root)
 
 def callback(data):
-    app.update_sensor_values(data.sensordata)
+    app.update_sensor_values(list(data.sensordata))
 
 def listener():
     print()
     rospy.Subscriber("enose_sensordata", e_nose_raw, callback)
 
 if __name__ == '__main__':
-    root.mainloop()
+    rospy.init_node('demo_plot_gui', anonymous=True)
     listener()
+    root.mainloop()
