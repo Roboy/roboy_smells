@@ -2,12 +2,14 @@ from ROS.e_nose_classifier.src.e_nose_classification_publisher import eNoseClass
 from ROS.e_nose_classifier.src.e_nose_classification_test import eNoseClassificationTestPublisher
 from ROS.e_nose_classifier.src.e_nose_subscriber import eNoseSubscriber
 from ROS.e_nose_classifier.src.online_reader import OnlineReader
+from ROS.e_nose_classifier.src.e_nose_measurement_publisher import eNoseMeasurementPublisher
 from classification.lstm_model import SmelLSTM
 from classification.knn import KNN
 from e_nose.measurements import DataType
 import time
 import numpy as np
 import rospy
+
 
 
 class ClassifierOrganizer:
@@ -17,6 +19,7 @@ class ClassifierOrganizer:
         print('Initialiting Subcomponents...')
         self.pub = eNoseClassificationPublisher()
         self.pub_test = eNoseClassificationTestPublisher()
+        self.pub_meas = eNoseMeasurementPublisher()
         self.sub = eNoseSubscriber()
         failing_channels = [22, 31]
         #failing_channels = [0, 1, 2, 3, 4, 5, 6, 7, 22, 24, 25, 26, 27, 28, 29, 30, 31, 35, 36, 37, 38, 39, 56, 58, 59, 60, 61, 62, 63]
@@ -28,8 +31,8 @@ class ClassifierOrganizer:
         print(num_working_channels)
         self.online = OnlineReader(5, override_working_channels=working_channels)
         self.from_sample = 0
-        self.sub.onUpdate += self.gotNewSample
-        self.online.invoke_callback += self.gatheredData
+        self.sub.onUpdate += self.got_new_sample
+        self.online.invoke_callback += self.gathered_data
         self.use_neural_network = True
 
         if self.use_neural_network:
@@ -64,12 +67,14 @@ class ClassifierOrganizer:
         except KeyboardInterrupt:
             print('Interrupted...')
 
-    def gatheredData(self):
+    def gathered_data(self):
         print('gathered data')
         data = self.online.get_since_n_as_measurement(self.from_sample)
         print(data.correct_channels)
         print(data.get_data().shape)
         data_for_classifier = data.get_data_as(self.datatype)
+        self.pub_meas.send_classification(data_for_classifier)
+
         if self.use_neural_network:
             prediction = self.classifier.predict_live(data)
             self.pub_test.send_classification(prediction)
@@ -83,7 +88,7 @@ class ClassifierOrganizer:
         self.online.set_trigger_in(2)
         print('sequence length:',data_for_classifier.shape[0])
 
-    def gotNewSample(self):
+    def got_new_sample(self):
         self.online.add_sample(self.sub.sensor_values)
 
 
