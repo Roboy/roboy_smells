@@ -35,6 +35,7 @@ class ClassifierOrganizer:
         self.sub.onUpdate += self.got_new_sample
         self.online.invoke_callback += self.gathered_data
         self.use_neural_network = False
+        self.recording = False
 
         if self.use_neural_network:
             self.lstm1 = SmelLSTM(input_shape=(1, 50, num_working_channels), num_classes=6, hidden_dim_simple=6, stateful=False)
@@ -63,11 +64,17 @@ class ClassifierOrganizer:
         try:
             while True:
                 var = input("Please enter something: ")
-                print('restarting classification', var)
-                self.from_sample = self.online.current_length
-                self.online.set_trigger_in(4)
                 if var.lower() == 'q':
                     break
+                if not self.recording:
+                    print('restarting classification', var)
+                    self.from_sample = self.online.current_length
+                    self.online.set_trigger_in(9)
+                    self.recording = True
+                else:
+                    self.recording = False
+                    self.online.invoke_at = 99999999999
+
         except KeyboardInterrupt:
             print('Interrupted...')
 
