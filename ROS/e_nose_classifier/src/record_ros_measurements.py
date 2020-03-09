@@ -14,6 +14,7 @@ class ROSMessageRecorder:
         self.sub = eNoseSubscriber()
         self.sub.onUpdate += self.gotNewSample
         self.writer = CSVWriter('data_recording_'+str(time.time()))
+        rospy.spin()
 
         rospy.spin()
 
