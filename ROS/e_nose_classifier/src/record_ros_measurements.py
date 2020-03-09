@@ -15,10 +15,11 @@ class ROSMessageRecorder:
         self.sub.onUpdate += self.gotNewSample
         self.writer = CSVWriter('data_recording_'+str(time.time()))
 
+        rospy.spin()
+
 
     def gotNewSample(self):
-        if self.record:
-            self.writer.writeSample(self.sub.time, self.sub.sensor_values, self.sub.bme_data, self.sub.label)
+        self.writer.writeSample(self.sub.time, self.sub.sensor_values, self.sub.bme_data, self.sub.label)
 
 
 if __name__ == '__main__':
