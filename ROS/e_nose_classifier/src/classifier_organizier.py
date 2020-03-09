@@ -4,6 +4,7 @@ from ROS.e_nose_classifier.src.e_nose_subscriber import eNoseSubscriber
 from ROS.e_nose_classifier.src.e_nose_measurement_publisher import eNoseMeasurementPublisher
 from classification.lstm_model import SmelLSTM
 from classification.knn import KNN
+from classification.naive_bayes import GNB
 from e_nose.measurements import DataType, StandardizationType
 from e_nose.online_reader import OnlineReader
 import time
@@ -15,7 +16,7 @@ import rospy
 class ClassifierOrganizer:
     def __init__(self):
         print('Initialiting ROS node...')
-        rospy.init_node('e_nose_classifier_publish', anonymous=True)
+        rospy.init_node('classifier_organizer', anonymous=True)
         print('Initialiting Subcomponents...')
         self.pub = eNoseClassificationPublisher()
         self.pub_test = eNoseClassificationTestPublisher()
@@ -51,6 +52,7 @@ class ClassifierOrganizer:
         else:
             self.datatype = DataType.HIGH_PASS
             self.classifier = KNN(num_working_channels, data_dir='data', data_type=self.datatype)
+            self.classifier2 = GNB(data_dir='data', data_type=self.datatype)
         print('ros e_nose classification node started successfully')
 
     def startMeas(self):
@@ -68,21 +70,24 @@ class ClassifierOrganizer:
     def gathered_data(self):
         print('gathered data')
         data = self.online.get_since_n_as_measurement(self.from_sample)
-        print(data.correct_channels)
-        print(data.get_data().shape)
+        #print(data.correct_channels)
+        #print(data.get_data().shape)
         data_for_classifier = data.get_data_as(self.datatype)
         self.pub_meas.send_classification(data_for_classifier)
 
         if self.use_neural_network:
             prediction = self.classifier.predict_live(data)
-            self.pub_test.send_classification(prediction)
-            self.pub.send_classification(prediction)
         else:
             if (data_for_classifier.shape[0] > 40):
                 prediction = self.classifier.predict(data_for_classifier)
-                print('prediction: ', prediction)
-                self.pub_test.send_classification(prediction)
-                self.pub.send_classification(prediction)
+                prediction_gnb = self.classifier2.predict(data_for_classifier)
+                print('prediction_knn: ', prediction)
+                print('prediction_gnb: ', prediction_gnb)
+                self.pub_test.send_classification(prediction_gnb)
+                self.pub.send_classification(prediction_gnb)
+            else:
+                self.pub_test.send_classification('no_data')
+                self.pub.send_classification('no_data')
         self.online.set_trigger_in(2)
         print('sequence length:',data_for_classifier.shape[0])
 
