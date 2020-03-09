@@ -156,11 +156,12 @@ class FileAsOnlineReader:
     def get_last_n_as_measurement(self, n: int = 300) -> Measurement:
         return self.reader.get_last_n_as_measurement(n)
 
-    def get_all_measurements_every(self, n: int, m: int = -1, add_labels: bool = True) -> List[Measurement]:
+    def get_all_measurements_every(self, n: int, m: int = -1, initial_offset: int = 10, add_labels: bool = True) -> List[Measurement]:
         """ Plays the whole file and creates a Measurement object
             over the length of the last m samples every n samples
             :param n: returns a new Measurement every n
             :param m: each Measurement object encompasses the previous m samples
+            :param initial_offset: Skip the first few samples (required for StandardizationType.LAST_REFERENCE)
             :param add_labels: whether to add the ground truth labels to the data
         """
 
@@ -170,6 +171,7 @@ class FileAsOnlineReader:
         if m > n:
             # skip the first few samples so the first measurement object has enough to look back on
             self.feed_samples(m - n)
+        self.feed_samples(initial_offset)
 
         measurements: List[Measurement] = []
         while self.currpos < len(self.indices):
