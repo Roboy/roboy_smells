@@ -229,14 +229,17 @@ def get_data_stateless(measurements, dimension=35, return_sequences=True, augmen
 
     return tf.data.Dataset.from_tensor_slices((tf.constant(full_data), tf.constant(full_labels)))
 
-def get_data_knn(measurements, dimension=35, return_sequences=True, augment=False, sequence_length=50, masking_value=100., batch_size=64, classes_dict=None, data_type=DataType.HIGH_PASS):
+def get_data_knn(measurements, dimension=35, return_sequences=True, augment=False, sequence_length=50, masking_value=100., batch_size=1, classes_dict=None, data_type=DataType.HIGH_PASS):
     if classes_dict == None:
-        classes_list = ['coffee_powder', 'isopropanol', 'orange_juice', 'raisin', 'red_wine', 'wodka']
+        classes_list = ['acetone', 'isopropanol', 'orange_juice', 'pinot_noir', 'raisin', 'wodka']
         classes_dict = {}
         for i, c in enumerate(classes_list):
             classes_dict[c] = i
 
     padding = batch_size - len(measurements)%batch_size
+
+    if padding == batch_size:
+        padding = 0
 
     full_length = len(measurements) + padding
 
