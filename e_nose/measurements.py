@@ -4,8 +4,8 @@ from typing import Dict, Any, List, Mapping, Optional, Union
 
 # Useful Datatype definitions
 
-Functionalisations_t = List[int]
-WorkingChannels_t = List[bool]
+Functionalisations_t = Union[List[int], np.ndarray]
+WorkingChannels_t = Union[List[bool], np.ndarray]
 DataRow_t = Dict[str, Any]
 # Only available in Python 3.8 ff
 """TypedDict('DataRow_t', {
