@@ -2,7 +2,6 @@ from ROS.e_nose_classifier.src.e_nose_classification_publisher import eNoseClass
 from ROS.e_nose_classifier.src.e_nose_classification_test import eNoseClassificationTestPublisher
 from ROS.e_nose_classifier.src.e_nose_subscriber import eNoseSubscriber
 from ROS.e_nose_classifier.src.online_reader import OnlineReader
-from test_equiment.Classes.CSVWriter import CSVWriter
 from classification.lstm_model import SmelLSTM
 from classification.knn import KNN
 from e_nose.measurements import DataType
@@ -12,9 +11,9 @@ import rospy
 
 
 class ClassifierOrganizer:
-    def __init__(self, record_data=False):
+    def __init__(self):
         print('Initialiting ROS node...')
-        rospy.init_node('e_nose_classifier_publish', anonymous=False)
+        rospy.init_node('e_nose_classifier_publish', anonymous=True)
         print('Initialiting Subcomponents...')
         self.pub = eNoseClassificationPublisher()
         self.pub_test = eNoseClassificationTestPublisher()
@@ -30,9 +29,6 @@ class ClassifierOrganizer:
         self.sub.onUpdate += self.gotNewSample
         self.online.invoke_callback += self.gatheredData
         self.use_neural_network = True
-        self.record = record_data
-        if record_data:
-            self.writer = CSVWriter('data_recording_', time.time())
 
         if self.use_neural_network:
             self.classifier = SmelLSTM(input_shape=(1, 1, num_working_channels), num_classes=6, hidden_dim_simple=12)
@@ -84,8 +80,6 @@ class ClassifierOrganizer:
 
     def gotNewSample(self):
         self.online.add_sample(self.sub.sensor_values)
-        if self.record:
-            self.writer.writeSample(self.sub.time, self.sub.sensor_values, self.sub.bme_data, self.sub.label)
 
 
 if __name__ == '__main__':
