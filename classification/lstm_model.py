@@ -57,7 +57,7 @@ def make_model_deeper(input_shape, num_classes, hidden_dim_1=32, hidden_dim_2=16
 
 class SmelLSTM:
     def __init__(self, input_shape, num_classes, masking_value=100., return_sequences=True, simple_model=True, stateful=True,
-                 hidden_dim_simple=6, data_type=DataType.HIGH_PASS, LSTM=True, classes_list = ['coffee_powder', 'isopropanol', 'orange_juice', 'raisin', 'red_wine', 'wodka']):
+                 hidden_dim_simple=6, data_type=DataType.HIGH_PASS, LSTM=True, classes_list = ['acetone', 'isopropanol', 'orange_juice', 'pinot_noir', 'raisin', 'wodka']):
 
         self.input_shape = input_shape
         self.num_classes = num_classes
@@ -102,14 +102,14 @@ class SmelLSTM:
 
     def predict_live(self, measurement):
         data = measurement.get_data_as(self.data_type)
-        print(data.shape)
+        #print(data.shape)
         self.model.reset_states()
         sample = np.empty(shape=self.input_shape)
         for d in range(data.shape[0]):
             sample[0, 0, :] = data[d, :]
             y = self.model(sample, training=False)
             prediction = self.classes_list[np.argmax(y.numpy(), -1).flatten()[0]]
-            print(prediction)
+            #print(prediction)
         return prediction
 
     def predict_over_measurement(self, measurement):
