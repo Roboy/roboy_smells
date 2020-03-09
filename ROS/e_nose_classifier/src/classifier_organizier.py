@@ -18,8 +18,10 @@ class ClassifierOrganizer:
         self.pub = eNoseClassificationPublisher()
         self.pub_test = eNoseClassificationTestPublisher()
         self.sub = eNoseSubscriber()
-        failing_channels = [0, 1, 2, 3, 4, 5, 6, 7, 22, 24, 25, 26, 27, 28, 29, 30, 31, 35, 36, 37, 38, 39, 56, 57, 58,
-                            59, 60, 61, 62, 63]
+        failing_channels = [22, 31]
+        #failing_channels = [0, 1, 2, 3, 4, 5, 6, 7, 22, 24, 25, 26, 27, 28, 29, 30, 31, 35, 36, 37, 38, 39, 56, 58, 59, 60, 61, 62, 63]
+        #failing_channels = [0, 1, 2, 3, 4, 5, 6, 7, 22, 24, 25, 26, 27, 28, 29, 30, 31, 35, 36, 37, 38, 39, 56, 57, 58, 59, 60, 61, 62, 63]
+        #failing_channels = [2, 3, 4, 5, 15, 16, 22, 23, 25, 26, 27, 28, 29, 31, 35, 36, 38, 39, 56, 59, 60, 61]
         working_channels = np.ones(64, bool)
         working_channels[failing_channels] = False
         num_working_channels = np.count_nonzero(working_channels)
@@ -67,16 +69,19 @@ class ClassifierOrganizer:
         data = self.online.get_since_n_as_measurement(self.from_sample)
         print(data.correct_channels)
         print(data.get_data().shape)
+        data_for_classifier = data.get_data_as(self.datatype)
         if self.use_neural_network:
             prediction = self.classifier.predict_live(data)
+            self.pub_test.send_classification(prediction)
+            self.pub.send_classification(prediction)
         else:
-            data_for_classifier = data.get_data_as(self.datatype)
-            if (data.shape[0] > 40):
+            if (data_for_classifier.shape[0] > 40):
                 prediction = self.classifier.predict(data_for_classifier)
-        print('prediction: ', prediction)
-        self.pub_test.send_classification(prediction)
-        self.pub.send_classification(prediction)
+                print('prediction: ', prediction)
+                self.pub_test.send_classification(prediction)
+                self.pub.send_classification(prediction)
         self.online.set_trigger_in(2)
+        print('sequence length:',data_for_classifier.shape[0])
 
     def gotNewSample(self):
         self.online.add_sample(self.sub.sensor_values)

@@ -2,8 +2,14 @@ import random
 import time
 from enum import Enum, auto
 
-import rospy
-from std_msgs.msg import String
+ROS = False
+try:
+    import rospy
+    from std_msgs.msg import String
+    ROS = True
+except ImportError:
+    print('Failed to import ROS running in test mode')
+    pass
 
 try:
     import pyroboy
@@ -22,6 +28,7 @@ class ClassificationVoicer:
     NEW_SMELL_QUOTES = [
         "Oh, do I smell something?",
         "There's a smelly smell in here that smells... smelly.",
+        "I am not entirely sure, but do I smell %CLASS%?",
         "Do I smell %CLASS%?",
         "Do you smell %CLASS% as well?",
         "Hmm... Does it smell like %CLASS%?"
@@ -61,27 +68,43 @@ class ClassificationVoicer:
     }
 
     TIME_RESET = 30.0
-    TIME_UNTIL_SURE = 15.0
+    TIME_UNTIL_SURE = 12.0
     TIME_ENTERTAIN_MIN = 5.0
 
     CLASS_NULL = ['ref', 'null']
 
     def __init__(self):
-        print('Initialiting ROS node...')
-        rospy.init_node('e_nose_classification_voicer', anonymous=False)
-        print('Initialiting Subcomponents...')
-
         self.current_class = None
         self.last_class_change_time = time.time()
         self.last_say_time = time.time()
         self.last_state_change_time = time.time()
         self.state = ClassificationVoicer.State.NULL
 
-        rospy.Subscriber("/e_nose_classification", String, self.callback)
-        print('ros e_nose classification VOICER node started successfully')
+        if ROS:
+            print('Initialiting ROS node...')
+            rospy.init_node('e_nose_classification_voicer', anonymous=False)
+            print('Initialiting Subcomponents...')
+
+            rospy.Subscriber("/e_nose_classification", String, self.callback)
+            print('ros e_nose classification VOICER node started successfully')
 
     def run(self):
-        rospy.spin()
+        if ROS:
+            rospy.spin()
+        else:
+            class Data:
+                def __init__(self, data):
+                    self.data = data
+            try:
+                while True:
+                    var = input("Please enter something: ")
+                    if var == '':
+                        var = self.current_class
+                    self.callback(Data(var))
+                    if var.lower() == 'q':
+                        break
+            except KeyboardInterrupt:
+                print('Interrupted...')
 
     def say(self, text):
         if isinstance(text, list):
@@ -128,11 +151,14 @@ class ClassificationVoicer:
                 # Smell changed within 10s
                 self.change_state(ClassificationVoicer.State.CONFUSED)
                 self.say(self.MAYBE_SMELL_QUOTES)
+            elif curr_time - self.last_say_time > self.TIME_ENTERTAIN_MIN:
+                # entertain while in start state
+                self.say(self.MAYBE_SMELL_QUOTES)
         elif self.state == ClassificationVoicer.State.CONFUSED:
             if curr_time - self.last_class_change_time > 10:
                 if smell_class in self.CLASS_NULL:
                     # back to init
-                    self.change_state(ClassificationVoicer.State.NONE)
+                    self.change_state(ClassificationVoicer.State.NULL)
                     self.say(self.CONFUSED_SMELL_QUOTES)
                 else:
                     # No class change for 10 seconds => transition to sure
@@ -142,8 +168,7 @@ class ClassificationVoicer:
                 # confusing stuff for too long => back to init
                 self.change_state(ClassificationVoicer.State.NULL)
                 self.say(self.CONFUSED_SMELL_QUOTES)
-            elif changed:
-                if smell_class not in self.CLASS_NULL and curr_time - self.last_say_time > self.TIME_ENTERTAIN_MIN:
+            elif curr_time - self.last_say_time > self.TIME_ENTERTAIN_MIN:
                     # entertain while in confused state
                     self.say(self.MAYBE_SMELL_QUOTES)
         elif self.state == ClassificationVoicer.State.SURE:
