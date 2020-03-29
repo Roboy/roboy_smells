@@ -1,17 +1,27 @@
 import time
 from datetime import datetime
 from datetime import timedelta
-from ServoConnector import ServoConnecor
-from TimeOverCalculator import TimeCalculator
-from BMEConnector import BMEConnector
-from e_nose_connector import eNoseConnector
-from e_nose_node import eNoseRawNode
+from test_equiment.Classes.ServoConnector import ServoConnecor
+from test_equiment.Classes.TimeOverCalculator import TimeCalculator
+from test_equiment.Classes.BMEConnector import BMEConnector
+from test_equiment.Classes.eNoseConnector import eNoseConnector
+from ROS.e_nose_raw_publisher.msg import e_nose_raw
 from random import choices
 
 
 class TestEquimentRunner:
+    """
+    Works the same as the TestRunner in the test_equipment package with the difference it does not save the samples
+    to a csv file but sends it via ROS
+    It also used a random sampling with a equally distribution so that each sample gets more or less measured the same
+    amount
+    """
 
     def get_next_sample(self):
+        """
+        Calculates the next random sample, the less a sample is measured the more likely it is that it is the next sample
+        :return: the index of a sample
+        """
         weights_samples = [1 / self.class_sampled[0], 1 / self.class_sampled[1],
                            1 / self.class_sampled[2], 1 / self.class_sampled[3],
                            1 / self.class_sampled[4], 1 / self.class_sampled[5],
@@ -23,13 +33,14 @@ class TestEquimentRunner:
     # labels[0-7] = labels of 0-7 samples, numLoops = number of iterations to be done, timeLoop = time length of a
     # single sample in seconds
     def __init__(self, labels, total_num_loop, sub_num_Loops, timeLoopSample, timeLoopRef):
+        # starts with 1 as with 0 it would give a diveded through 0 error
         self.class_sampled = [1, 1, 1, 1, 1, 1, 1]
         # initialize eNose
         eNose = eNoseConnector()
         # initialize servo
         servo = ServoConnecor()
         # initialize ROS node
-        e_nose_ros = eNoseRawNode()
+        e_nose_ros = e_nose_raw()
         # initialize BMEConnector
         bme = BMEConnector()
 

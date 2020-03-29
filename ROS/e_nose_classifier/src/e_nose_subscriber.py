@@ -1,18 +1,21 @@
 #!/usr/bin/env python
 # license removed for brevity
 import rospy
-from sklearn.externals import joblib
-# from e_nose_raw_publisher.msg import e_nose_raw
 from ROS.e_nose_classifier.msg import e_nose_raw
 from ROS.e_nose_classifier.src.EventHook import EventHook
 
 
 class eNoseSubscriber:
+    """
+    ROS node for receiving the raw sensor data from the data gathering maching
+    Via the EventHook class its gets asynchronous to the classifier_organizer
+    """
+
     def __init__(self):
         self.onUpdate: EventHook = EventHook()
         self.listener()
         self.sensor_values = [0.0] * 64
-        self.bme_data = [0.0]*5
+        self.bme_data = [0.0] * 5
         self.time = ''
         self.label = ''
 

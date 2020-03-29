@@ -7,6 +7,11 @@ from std_msgs.msg import String
 
 
 class eNoseClassificationPublisher():
+    """
+    Sends the classification done in the classifier_organizer to OUI, which specified a special format of the format.
+    The ROS standard string  message contains a json helding up the widgtet id, the classifcation as string
+    or the classification as icon which has to be named according the icon name in unity
+    """
     def __init__(self):
         self.pub_classifier = rospy.Publisher('/oui/test', String, queue_size=10)
 

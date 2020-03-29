@@ -2,6 +2,10 @@ import numpy as np
 from enum import Enum, auto
 from typing import Dict, Any, List, Mapping, Optional, Union
 
+"""
+Additional documentation: https://devanthro.atlassian.net/wiki/spaces/WS1920/pages/631111682/RS+-+Data+Pipeline
+"""
+
 # Useful Datatype definitions
 
 Functionalisations_t = Union[List[int], np.ndarray]
@@ -103,14 +107,13 @@ class Measurement:
     def get_data(self, standardize: bool = True, force: bool = False, log: bool = True,
                  only_working: bool = True) -> np.ndarray:
         """
-
-        :param standardize:
-        :param force:
+        :param standardize: When standardize is True, the reference measurement will be used to standardise the data if available.
+        :param force: When force is True, cached data will be ignored (i.e. recalculated)
         :param log: Logarithmic data
         :param only_working: Only return working channels; False only guaranteed to work with standardize OFF
-        :return:
+        :return: returns the data of the measurement as dictionary with the timestamps as keys
         """
-        # Import here to avoid circular references...
+        #         # Import here to avoid circular references...
         from . import data_processing as dp
 
         data = self.logdata if log else self.data
@@ -131,7 +134,9 @@ class Measurement:
                         print("WARNING! USING LOG REFERENCE FOR NORMAL DATA!")
                     cache[DataType.STANDARDIZED] = dp.high_pass_logdata(data, init=self.reference_measurement)[:, mask]
                 else:
-                    raise TypeError("ERROR: Invalid state of reference-measurement: " + str(type(self.reference_measurement)) + str(type(Measurement)))
+                    raise TypeError(
+                        "ERROR: Invalid state of reference-measurement: " + str(type(self.reference_measurement)) + str(
+                            type(Measurement)))
 
             return cache[DataType.STANDARDIZED]
 
@@ -141,14 +146,13 @@ class Measurement:
                     num_last: int = 10, num_samples: int = 10) \
             -> np.ndarray:
         """
-
-        :param datatype:
-        :param standardize:
-        :param force:
-        :param log:
-        :param num_last:
-        :param num_samples:
-        :return:
+        :param log: enable logging
+        :param datatype: see description of datatype above, more detailed description can be found here: https://devanthro.atlassian.net/wiki/spaces/WS1920/pages/edit-v2/631111682
+        :param standardize: When standardize is True, the reference measurement will be used to standardise the data if available.
+        :param force: When force is True, cached data will be ignored (i.e. recalculated)
+        :param num_last: needed for DataType.LAST_AVG as is average the num_last measurements
+        :param num_samples: total number of measurements
+        :return: list of computed channels as mentioned in datatype and extended by specified bme sensor data
         """
         # Import here to avoid circular references...
         from . import data_processing as dp
@@ -159,7 +163,7 @@ class Measurement:
         if datatype in cache and not force and standardize:
             return cache[datatype]
 
-        #print('requesting datatype', datatype)
+        # print('requesting datatype', datatype)
 
         data_as: Optional[np.ndarray] = None
         if datatype is DataType.LAST_AVG:
@@ -201,13 +205,18 @@ class Measurement:
                           humidity: bool = False, pressure: bool = False, altitude: bool = False) \
             -> np.ndarray:
         """
-
-        :param datatype:
-        :param standardize:
-        :param force:
-        :param num_last:
-        :param num_samples:
-        :return:
+        :param log: enable logging
+        :param gas: extends eNose data by gas
+        :param temperature: extends eNose data by temperature
+        :param altitude: extends eNose data by altitude
+        :param pressure: extends eNose data by pressure
+        :param humidity: extends eNose data by humidty
+        :param datatype: detailed description can be found here: https://devanthro.atlassian.net/wiki/spaces/WS1920/pages/edit-v2/631111682
+        :param standardize: When standardize is True, the reference measurement will be used to standardise the data if available.
+        :param force: When force is True, cached data will be ignored (i.e. recalculated)
+        :param num_last: needed for DataType.LAST_AVG as is average the num_last measurements
+        :param num_samples: total number of measurements
+        :return: list of computed channels as mentioned in datatype and extended by specified bme sensor data
         """
         pure_data = self.get_data_as(datatype, standardize, force, log, num_last, num_samples)
         if temperature:
@@ -222,4 +231,3 @@ class Measurement:
             pure_data = np.append(pure_data, self.altitude)
 
         return pure_data
-

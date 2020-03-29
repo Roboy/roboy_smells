@@ -4,6 +4,10 @@ from std_msgs.msg import String
 
 
 class eNoseClassificationTestPublisher():
+    """
+        sends the classification done in the classifier_organizer to our demo view as a simple string
+    """
+
     def __init__(self):
         self.pub_classifier = rospy.Publisher('e_nose_classification', String, queue_size=10)
 

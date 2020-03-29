@@ -300,16 +300,6 @@ def high_pass_logdata(data: np.ndarray, init: Optional[np.ndarray] = None) -> np
     """ Filters out slow trends from logarithmic data; zeroes the avg of the first 5 samples.
      WILL NOT modify the passed array in-place"""
 
-    out_data = np.copy(data)
-    l1_filter = np.mean(data[:3], axis=0)
-    if init is not None:
-        l1_filter = init
-    l1_factor = 1e-3
-    for i in range(len(data)):
-        l1_filter = (l1_filter + data[i] * l1_factor) / (1.0 + l1_factor)
-        out_data[i] -= l1_filter
-    return out_data
-
 
 def full_pre_processing(data: np.ndarray, init: Optional[np.ndarray] = None) -> np.ndarray:
     """ Full Pre-Processing Pipeline """

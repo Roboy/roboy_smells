@@ -12,6 +12,13 @@ bme680 = None
 
 
 def bme680_node():
+    """
+    publishes the sensor data of the bme680 sensor to OUI via ROS.
+    Each datapoint needs its own widget, thus only the temperature and humidity is currently used.
+    For the temperature there exists two types of messages 1) a grapg widget so that the temp is displayed as a graph
+    and a toastr message which is like a popup displaying a warning message, in this case if the measured temperature is
+    above 40 Degrees
+    """
     send_warning = False
     pub_temp = rospy.Publisher('env_sensor', String, queue_size=10)
     pub_temp_warn = rospy.Publisher('env_sensor', String, queue_size=10)
@@ -31,10 +38,7 @@ def bme680_node():
                 get_json_toastr_message(37, str("WARNING: TEMPERATURE is high: ", current_temp), [255, 0, 0, 255]))
         elif current_temp < 35:
             send_warning = False
-        # pub_gas.publish(get_json_message(2, current_gas, time.time()))
         pub_humidity.publish(get_json_message(38, current_humidity, time.time()))
-        # pub_pressure.publish(get_json_message(4, current_pressure, time.time()))
-        # pub_altitude.publish(get_json_message(5, current_altitude, time.time()))
         rate.sleep()
 
 

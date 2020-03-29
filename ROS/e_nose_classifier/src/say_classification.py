@@ -19,6 +19,9 @@ except ImportError:
 
 
 class ClassificationVoicer:
+    """
+    Sends classification to Roboy to say it in voice
+    """
     class State(Enum):
         NULL = auto()
         START_SMELL = auto()
