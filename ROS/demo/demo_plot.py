@@ -4,17 +4,21 @@ from std_msgs.msg import String
 from e_nose_raw_publisher.msg import e_nose_raw
 import tkinter as tk
 
-import threading
-import time
-
 from matplotlib.backends.backend_tkagg import ( FigureCanvasTkAgg, NavigationToolbar2Tk)
-# Implement the default Matplotlib key bindings.
-from matplotlib.backend_bases import key_press_handler
 from matplotlib.figure import Figure
 import numpy as np
 
+"""
+This is an application that takes input from the e_nose sensor and displays the data in matplotlib graphs.
+"""
+
 class FullScreenApp(tk.Frame):
     def __init__(self, master, **kwargs):
+        """
+        initialised the TKinter App and the matplotlib canvas
+        :param master: root node of the tkinter app
+        :param kwargs:
+        """
         tk.Frame.__init__(self, master)
         self.master = master
         pad = 3
@@ -37,13 +41,6 @@ class FullScreenApp(tk.Frame):
         toolbar.update()
         self.canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
 
-        def on_key_press(event):
-            key_press_handler(event, self.canvas, toolbar)
-            self.gen_random_data()
-            self.canvas.draw()
-
-        self.canvas.mpl_connect("key_press_event", on_key_press)
-
         def _quit():
             root.quit()  # stops mainloop
             root.destroy()  # this is necessary on Windows to prevent
@@ -55,26 +52,33 @@ class FullScreenApp(tk.Frame):
         root.after(300, self.update_canvas)
 
     def update_canvas(self):
+        """
+        This updates the canvas (plots new data) every 1 second (1000 ms). If this would be done in the update sensor
+        values method, the app crashes because of a collision between ROS and tk.
+        """
         self.canvas.draw()
         root.after(1000, self.update_canvas)
 
 
     def toggle_geom(self, event):
+        """
+        Toggles fullscreen on/off
+        :param event: not used
+        """
         geom = self.master.winfo_geometry()
         self.master.geometry(self._geom)
         self._geom = geom
 
     def update_sensor_values(self, sd):
+        """
+        Adds new sensor value data from the e_nose sensor.
+        :param sd: sensor data
+        """
         self.ax.clear()
         self.sensor_data = np.vstack((self.sensor_data, np.expand_dims(sd, axis=0)))
         self.sensor_data = self.sensor_data[:100, :]
-        print(self.sensor_data.shape)
         self.ax.plot(self.sensor_data)
         self.ax.set_yscale('log')
-
-    def gen_random_data(self):
-        print("2")
-        #self.update_sensor_values(np.random.rand(64))
 
 root = tk.Tk()
 app = FullScreenApp(root)
@@ -83,7 +87,6 @@ def callback(data):
     app.update_sensor_values(list(data.sensordata))
 
 def listener():
-    print()
     rospy.Subscriber("enose_sensordata", e_nose_raw, callback)
 
 if __name__ == '__main__':
