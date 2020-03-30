@@ -78,7 +78,6 @@ def get_measurements_from_dir(directory_name='../data'):
 
     return np.array(measurements)
 
-
 def train_test_split(measurements, split=0.8):
     labels_measurements = [m.label for m in measurements]
     labels = np.unique(labels_measurements)
@@ -100,7 +99,6 @@ def train_test_split(measurements, split=0.8):
 
     return measurements_train, measurements_test
 
-
 def shuffle(dataset_one, dataset_two=None):
     np.random.shuffle(dataset_one)
     if dataset_two is not None:
@@ -109,14 +107,18 @@ def shuffle(dataset_one, dataset_two=None):
     else:
         return dataset_one
 
-
-def get_batched_data(measurements, classes_dict, masking_value, data_type=DataType.HIGH_PASS, batch_size=4, sequence_length=4, dimension=64, return_sequences=True):
+def get_batched_data(measurements, classes_dict=None, masking_value=100., data_type=DataType.HIGH_PASS, batch_size=4, sequence_length=4, dimension=64, return_sequences=True):
+    if classes_dict == None:
+        classes_list = ['acetone', 'isopropanol', 'orange_juice', 'pinot_noir', 'raisin', 'wodka']
+        classes_dict = {}
+        for i, c in enumerate(classes_list):
+            classes_dict[c] = i
 
     measurement_indices = np.arange(len(measurements))
     np.random.shuffle(measurement_indices)
 
     padding = batch_size-(measurement_indices.size % batch_size)
-    measurement_indices = np.append(measurement_indices, np.ones(padding, dtype=int) * int(masking_value))
+    measurement_indices = np.append(measurement_indices, np.ones(padding, dtype=int) * (-1))
     measurement_indices = np.reshape(measurement_indices, (-1, batch_size))
 
     batches_data = []
@@ -130,10 +132,8 @@ def get_batched_data(measurements, classes_dict, masking_value, data_type=DataTy
         max_len = 0
         for b in range(batch_size):
             index = batch_indices[b]
-            #print(index)
-            if index != masking_value:
+            if index != -1:
                 series_data = measurements[index].get_data_as(data_type)
-                #print(classes_dict[measurements[index].label])
                 series_labels = np.ones(shape=(series_data.shape[0], 1), dtype=int) * classes_dict[measurements[index].label]
             else:
                 series_data = np.ones(shape=(1, dimension), dtype=float) * masking_value
@@ -154,7 +154,6 @@ def get_batched_data(measurements, classes_dict, masking_value, data_type=DataTy
         batches_labels.append(batch_labels)
 
     for i, ba in enumerate(batches_data):
-        #print("ba:", ba.shape)
         ba_labels = batches_labels[i]
         padding_length = sequence_length - (ba.shape[1] % sequence_length)
         if padding_length != sequence_length:
@@ -175,10 +174,6 @@ def get_batched_data(measurements, classes_dict, masking_value, data_type=DataTy
             batches_labels_done = np.append(batches_labels_done, ba_labels, axis=0)
 
     batches_labels_done = batches_labels_done.astype(int)
-    #print(type(batches_labels_done))
-
-    #print(batches_data_done.shape)
-    #print(batches_labels_done.shape)
 
     if return_sequences == False:
         batches_labels_done_stateless = np.empty(shape=(batches_labels_done.shape[0],
@@ -187,12 +182,8 @@ def get_batched_data(measurements, classes_dict, masking_value, data_type=DataTy
         for i, y in enumerate(batches_labels_done):
             batches_labels_done_stateless[i] = y[:, 0, :]
         batches_labels_done = batches_labels_done_stateless
-    #print('batches_labels_done.shape: ', batches_labels_done.shape)
-    #print('batches_labels_done: ', batches_labels_done)
-
 
     return batches_data_done, batches_labels_done, starting_indices
-
 
 def get_data_stateless(measurements, dimension=35, return_sequences=True, augment=False, sequence_length=50, masking_value=100., batch_size=64, classes_dict=None, data_type=DataType.HIGH_PASS):
     if classes_dict == None:
@@ -221,11 +212,6 @@ def get_data_stateless(measurements, dimension=35, return_sequences=True, augmen
             raise ValueError("Measurement too short!")
         full_data[i] = m.get_data_as(data_type)[:sequence_length, :]
         full_labels[i] = np.ones(shape=labels_shape, dtype=int)*classes_dict[m.label]
-
-    #indices = np.arange(full_labels.shape[0])
-    #np.random.shuffle(indices)
-
-    print(full_data.shape, full_labels.shape)
 
     return tf.data.Dataset.from_tensor_slices((tf.constant(full_data), tf.constant(full_labels)))
 
@@ -260,31 +246,4 @@ def get_data_knn(measurements, dimension=35, return_sequences=True, augment=Fals
         full_data[i] = m.get_data_as(data_type)[:sequence_length, :]
         full_labels[i] = np.ones(shape=labels_shape, dtype=int)*classes_dict[m.label]
 
-    #indices = np.arange(full_labels.shape[0])
-    #np.random.shuffle(indices)
-
-    print(full_data.shape, full_labels.shape)
-
     return full_data, full_labels
-
-'''
-measurements = get_measurements_from_dir('../data_test')[:6]
-data, labels = get_data_stateless(measurements, return_sequences=False , dimension=42)
-print(labels)
-
-import tensorflow as tf
-dataset = tf.data.Dataset.from_tensor_slices((tf.constant(data), tf.constant(labels)))
-
-dataset = dataset.batch(2)
-
-print(dataset)
-
-for i in range(2):
-    if i > 0:
-        dataset = dataset.shuffle(len(measurements))
-    for X, y in dataset:
-        #print(X)
-        print(y)
-    print('#############################################################')
-
-'''
