@@ -3,10 +3,25 @@ import tensorflow as tf
 
 from e_nose import file_reader
 from e_nose import data_processing as dp
-from e_nose.measurements import StandardizationType, DataType
+from e_nose.measurements import StandardizationType, DataType, Measurement
 from scipy import signal
+from typing import List
 
-def butter_lowpass_filter(data, cutoff, fs, order):
+"""
+This file contains data loading utilities for training the different ML models.
+"""
+
+def butter_lowpass_filter(data: np.ndarray, cutoff: float, fs: float, order: int) -> np.ndarray:
+    """
+    This method initialises the scipy butter lowpass filter with the given parameters and then
+    filters the given data.
+
+    :param data: input data to be filtered
+    :param cutoff: cutoff frequency
+    :param fs: sample rate of the data signal
+    :param order: the order of the filter
+    :return: filtered data
+    """
     nyq = 0.5 * fs
     normal_cutoff = cutoff / nyq
     # Get the filter coefficients
@@ -14,7 +29,20 @@ def butter_lowpass_filter(data, cutoff, fs, order):
     y = signal.filtfilt(b, a, data)
     return y
 
-def low_pass_mean_std_measurement(measurements, sample_rate=0.5, cutoff_freq=0.02, order=2):
+def low_pass_mean_std_measurement(measurements: List[Measurement],
+                                  sample_rate: float=0.5,
+                                  cutoff_freq: float=0.02,
+                                  order: int=2):
+    """
+    This method filters the data for each measurement using a low pass filter and then normalizes the data with
+    mean and standard deviation.
+
+    :param measurements: measurements to be processed
+    :param sample_rate: sample rate of the data points in the measurements
+    :param cutoff_freq: cutoff frequency for the low pass filter
+    :param order: order of the low pass filter
+    :return: filtered and normalized signal for every measurement
+    """
     for meas in measurements:
         data = meas.get_data()
         ys = np.zeros_like(data)
@@ -30,7 +58,16 @@ def low_pass_mean_std_measurement(measurements, sample_rate=0.5, cutoff_freq=0.0
         meas.data = ys
     return measurements
 
-def get_measurements_train_test_from_dir(train_dir='../data', test_dir='../data'):
+def get_measurements_train_test_from_dir(train_dir: str = '../data', test_dir: str = '../data') -> (np.ndarray, np.ndarray, int):
+    """
+    This method gets train and test data from the respective directories. It uses the correct channels found in
+    the test file to guarantee that the models are not trained on less data than there is available in the test
+    files
+
+    :param train_dir: path to directory containing the train data
+    :param test_dir: path to directory containing the test data
+    :return: array of train and test measurements and the number of broken channels.
+    """
     functionalisations_train, correct_channels, data_train = file_reader.read_all_files_in_folder(train_dir)
     functionalisations_test, correct_channels, data_test = file_reader.read_all_files_in_folder(test_dir)
 
@@ -63,7 +100,13 @@ def get_measurements_train_test_from_dir(train_dir='../data', test_dir='../data'
 
     return np.array(measurements_train), np.array(measurements_test), np.count_nonzero(correct_channels)
 
-def get_measurements_from_dir(directory_name='../data'):
+def get_measurements_from_dir(directory_name: str= '../data') -> np.ndarray:
+    """
+    This method returns the standarized measurements found in the data in the specified directory.
+
+    :param directory_name: path of the directory containing the data
+    :return: array of measurements
+    """
     functionalisations, correct_channels, data = file_reader.read_all_files_in_folder(directory_name)
     print(np.count_nonzero(correct_channels))
     measurements_per_file = {}
@@ -79,7 +122,14 @@ def get_measurements_from_dir(directory_name='../data'):
     return np.array(measurements)
 
 
-def train_test_split(measurements, split=0.8):
+def train_test_split(measurements: np.ndarray, split: float = 0.8) -> (np.ndarray, np.ndarray):
+    """
+    This method splits an array of measurements into train and test data sets with the specified split.
+
+    :param measurements: array of measurements
+    :param split: percentage of data that should be in the train data set
+    :return: train measurement array and test measurement array
+    """
     labels_measurements = [m.label for m in measurements]
     labels = np.unique(labels_measurements)
 
