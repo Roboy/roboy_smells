@@ -1,6 +1,18 @@
 import numpy as np
+"""
+This file includes utility functions needed for working with triplets and the triplet loss.
+"""
 
-def create_triplets(data, num_triplets=300):
+def create_triplets(data: np.ndarray, num_triplets: int = 300) -> (np.ndarray, np.ndarray):
+    """
+    Creates triplets from the provided data. To do this, an anchor is randomly selected and then a positive and negativ
+    sample for that anchor are selected.
+    The function returns an array of size (num_triplets, 3)
+
+    :param data: the data from which the triplets should be formed. needs to be an array of measurements
+    :param num_triplets: number of triplets to be created
+    :return: array of triplets (num_triplets, 3), label_of_triplets (num_triplets, 3)
+    """
     #Create Triplets for train
     triplets = np.zeros((0,3,64,49))
     triplet_labels = []
@@ -33,7 +45,15 @@ def create_triplets(data, num_triplets=300):
     return triplets, triplet_labels
 
 
-def getInputBatchFromTriplets(train_triplets, val_triplets):
+def getInputBatchFromTriplets(train_triplets: np.ndarray, val_triplets: np.ndarray) -> (np.ndarray, np.ndarray):
+    """
+    This function takes in an array of triplets and flattens them so they can easily be used in a model for training
+
+    It also normalizes both the train and the validation batch
+    :param train_triplets: train triplet array: shape (num_train_triplets, 3)
+    :param val_triplets: val triplet array: shape (num_val_triplets, 3)
+    :return: train_batch and val_batch both with shape (3*num_xxx_triplets, 1)
+    """
     def flatten_triplets(triplets):
         N = len(triplets)
         T = 3

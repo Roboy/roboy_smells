@@ -1,7 +1,7 @@
 import argparse
 import os
 import numpy as np
-from classification.models.cnn1d_classes import load_data, Model1DCNN
+from classification.cnn1d_classes import load_data, Model1DCNN
 from ray import tune
 
 parent_path = os.getcwd()
@@ -13,8 +13,19 @@ args, _ = parser.parse_known_args()
 
 x_train, y_train, x_val, y_val, num_classes = load_data(os.path.join(parent_path, 'data'))
 
+"""
+This CNNTrainable is used for the tune library for hyperparametertuning the 1d CNN with the cross entropy loss.
+"""
 class CNNTrainable(tune.Trainable):
-    def _setup(self, config):
+    def _setup(self, config: dict):
+
+        """
+        This method sets up the tune.Trainable for the training of the 1d CNN.
+        :param config: configuration dictionary
+        :return:
+        """
+
+        #This is important! When this is declared outside, the tune can give errors.
         import tensorflow as tf
 
         ## CONFIG
@@ -33,6 +44,12 @@ class CNNTrainable(tune.Trainable):
 
         @tf.function
         def train_step(x, y):
+            """
+            does a single training step with the provided batch and updates the weights corresponding to the
+            loss defined in the self.loss_object function
+
+            :param batch:
+            """
             with tf.GradientTape() as tape:
                 predictions = self.model(x)
                 loss = self.loss_object(y, predictions)
@@ -44,6 +61,11 @@ class CNNTrainable(tune.Trainable):
 
         @tf.function
         def val_step(x, y):
+            """
+            does a single validation step with the provided batch
+
+            :param batch:
+            """
             predictions = self.model(x)
             loss = self.loss_object(y, predictions)
 
@@ -54,15 +76,31 @@ class CNNTrainable(tune.Trainable):
         self.tf_val_step = val_step
 
     def _save(self, tmp_checkpoint_dir):
+        """
+        saves models in the location provided in tmp_checkpoint_dir
+
+        :param tmp_checkpoint_dir: the directory of the checkpoint
+        :return: the checkpoint directory
+        """
         checkpoint_path = os.path.join(tmp_checkpoint_dir, "model_weights")
         self.model.save_weights(checkpoint_path, save_format="tf")
         return tmp_checkpoint_dir
 
     def _restore(self, checkpoint):
+        """
+        restores a specific checkpoint
+
+        :param checkpoint: checkpoint directory for the checkpoint to restore
+        """
         checkpoint_path = os.path.join(checkpoint, "model_weights")
         self.model.load_weights(checkpoint_path)
 
     def _train(self):
+        """
+        function that does all the train loop things.
+
+        :return: dictionary for tune.
+        """
         self.train_acc.reset_states()
         self.val_acc.reset_states()
         self.train_loss.reset_states()
