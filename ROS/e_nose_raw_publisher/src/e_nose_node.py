@@ -24,6 +24,10 @@ class eNoseRawNode:
         print('e_nose_raw node started succesfully')
 
     def run_standalone(self):
+        """
+        Standalone mode, so this methods run on its own, and gets the data from eNose and sends it via ROS
+        :return: published ROS message
+        """
         while not rospy.is_shutdown():
             msg = e_nose_raw()
             msg.sensordata = self.eNose.detect()
@@ -32,6 +36,14 @@ class eNoseRawNode:
             self.rate.sleep()
 
     def run_nonstandalone(self, e_nose_raw_data, bme_data, label=''):
+        """
+        Non standalone mode, this method is called externally by a differnt script and filled with the specified data
+        e.g. by the TestRunner_NonStandalone
+        :param e_nose_raw_data: 64 channels of the eNose
+        :param bme_data: 5 channels of the bme680 sensor
+        :param label: the label of the current measurement
+        :return: complete custom message which is send by ROS
+        """
         msg = e_nose_raw()
         msg.sensordata = e_nose_raw_data
         msg.label = label

@@ -43,6 +43,10 @@ def bme680_node():
 
 
 def detect():
+    """
+    gets the current measurements of the bme680 sensor
+    :return: 5 channels with current values of the bme sensor
+    """
     try:
         global bme680
         temp = bme680.temperature
@@ -57,6 +61,10 @@ def detect():
 
 
 def init():
+    """
+    init bme680 sensor via I2C
+    :return:
+    """
     global bme680
     i2c = I2C(board.SCL, board.SDA)
     bme680 = adabme.Adafruit_BME680_I2C(i2c, debug=False)
@@ -64,6 +72,12 @@ def init():
 
 
 def get_json_message(id, value, timestamp):
+    """
+    :param id:id of the OUI widget in Unity3d
+    :param value: current value of bme sensor data
+    :param timestamp: timestamp in epoch time
+    :return: json as specified by OUI for Graph widget
+    """
     sensordata_json = {
         "id": id,
         "graphDatapoint": value,
@@ -73,6 +87,13 @@ def get_json_message(id, value, timestamp):
 
 
 def get_json_toastr_message(id, value, color):
+    """
+
+    :param id: id of toastr widget
+    :param value: value to be displayed in popup
+    :param color: text color of toastr message
+    :return: json as specified by OUI for Toasts widget
+    """
     sensordata_json = {
         "id": id,
         "toastrMessage": value,
