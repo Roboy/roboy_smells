@@ -3,7 +3,7 @@ import os
 import numpy as np
 
 from ray import tune
-from classification.models.cnn1d_latent import load_data, Model1DCNN
+from classification.cnn1d_latent import load_data, Model1DCNN
 
 parent_path = os.getcwd()
 
@@ -12,7 +12,9 @@ parser.add_argument(
     "--smoke-test", action="store_true", help="Finish quickly for testing")
 args, _ = parser.parse_known_args()
 
-train_batch, val_batch = load_data(os.path.join(parent_path, 'data'))
+num_triplets_train = 300
+num_triplets_val = 300
+train_batch, val_batch = load_data(os.path.join(parent_path, 'data'), num_triplets_train, num_triplets_val)
 
 """
 This CNNTrainable is used for the tune library for hyperparametertuning the 1d CNN.
@@ -63,7 +65,7 @@ class CNNTrainable(tune.Trainable):
         def train_step(batch):
             """
             does a single training step with the provided batch and updates the weights corresponding to the
-            loss defined in the self.loss_object funtion
+            loss defined in the self.loss_object function
 
             :param batch:
             """
