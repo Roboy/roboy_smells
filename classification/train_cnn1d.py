@@ -14,11 +14,20 @@ args, _ = parser.parse_known_args()
 
 train_batch, val_batch = load_data(os.path.join(parent_path, 'data'))
 
+"""
+This CNNTrainable is used for the tune library for hyperparametertuning the 1d CNN.
+"""
 class CNNTrainable(tune.Trainable):
-    def _setup(self, config):
-        import tensorflow as tf
+    def _setup(self, config: dict):
 
-        ## CONFIG
+        """
+        This method sets up the tune.Trainable for the training of the 1d CNN.
+        :param config: configuration dictionary
+        :return:
+        """
+
+        #This is important! When this is declared outside, the tune can give errors.
+        import tensorflow as tf
         batch_size = 900
 
         self.train_ds = tf.data.Dataset.from_tensor_slices((train_batch)).batch(batch_size)
@@ -31,6 +40,12 @@ class CNNTrainable(tune.Trainable):
 
         @tf.function
         def triplet_loss(feats):
+            """
+            computes the triplet loss with anchor, positive and negative sample.
+
+            :param feats: features of the last layer
+            :return: loss value
+            """
             m = 0.01
             diff_pos = feats[0:batch_size:3] - feats[1:batch_size:3]
             diff_pos_sq = tf.math.reduce_sum(diff_pos ** 2, axis=1)
@@ -46,6 +61,12 @@ class CNNTrainable(tune.Trainable):
 
         @tf.function
         def train_step(batch):
+            """
+            does a single training step with the provided batch and updates the weights corresponding to the
+            loss defined in the self.loss_object funtion
+
+            :param batch:
+            """
             with tf.GradientTape() as tape:
                 predictions = self.model(batch)
                 loss = self.loss_object(predictions)
@@ -56,6 +77,11 @@ class CNNTrainable(tune.Trainable):
 
         @tf.function
         def val_step(batch):
+            """
+            does a single validation step with the provided batch
+
+            :param batch:
+            """
             predictions = self.model(batch)
             loss = self.loss_object(predictions)
 
@@ -65,16 +91,32 @@ class CNNTrainable(tune.Trainable):
         self.tf_train_step = train_step
         self.tf_val_step = val_step
 
-    def _save(self, tmp_checkpoint_dir):
+    def _save(self, tmp_checkpoint_dir: str):
+        """
+        saves models in the location provided in tmp_checkpoint_dir
+
+        :param tmp_checkpoint_dir: the directory of the checkpoint
+        :return: the checkpoint directory
+        """
         checkpoint_path = os.path.join(tmp_checkpoint_dir, "model_weights")
         self.model.save_weights(checkpoint_path, save_format="tf")
         return tmp_checkpoint_dir
 
     def _restore(self, checkpoint):
+        """
+        restores a specific checkpoint
+
+        :param checkpoint: checkpoint directory for the checkpoint to restore
+        """
         checkpoint_path = os.path.join(checkpoint, "model_weights")
         self.model.load_weights(checkpoint_path)
 
-    def _train(self):
+    def _train(self) -> dict:
+        """
+        function that does all the train loop things.
+
+        :return: dictionary for tune.
+        """
         self.train_loss.reset_states()
         self.val_loss.reset_states()
 
