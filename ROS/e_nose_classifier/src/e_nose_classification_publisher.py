@@ -16,6 +16,10 @@ class eNoseClassificationPublisher():
         self.pub_classifier = rospy.Publisher('/oui/test', String, queue_size=10)
 
     def send_classification(self, classified: String):
+        """
+        Sends classification results to ROS nodes
+        :param classified: classification as string
+        """
         print('sending classification')
         if not rospy.is_shutdown():
             text = str('Hey I smelled: ' + classified)
@@ -25,6 +29,11 @@ class eNoseClassificationPublisher():
             print('no ROS connection')
 
     def get_json_text_message(self, id: int, text: String):
+        """
+        :param id: id of the OUI widget in Unity3d
+        :param text: classification
+        :return: json as specified by OUI for text widget
+        """
         sensordata_json = {
             "id": id,
             "textMessage": text,
@@ -32,6 +41,11 @@ class eNoseClassificationPublisher():
         return json.dumps(sensordata_json)
 
     def get_json_icon_message(self, id: int, text: String):
+        """
+        :param id: id of the OUI widget in Unity3d
+        :param text: classification
+        :return: json as specified by OUI for icon widget
+        """
         icon = ""
         if text == 'wodka':
             icon = 'Wodka'

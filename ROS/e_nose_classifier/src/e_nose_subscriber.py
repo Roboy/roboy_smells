@@ -20,6 +20,11 @@ class eNoseSubscriber:
         self.label = ''
 
     def callback(self, data):
+        """
+        callback of ROS listener to get data from message
+        :param data: ros message data
+        :return: values as global variables
+        """
         print(rospy.get_caller_id() + "I heard %s", data.measurement_time)
         self.sensor_values = data.sensordata
         self.time = data.measurement_time

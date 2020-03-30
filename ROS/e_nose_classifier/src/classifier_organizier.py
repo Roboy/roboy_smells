@@ -95,6 +95,11 @@ class ClassifierOrganizer:
             print('Interrupted...')
 
     def gathered_data(self):
+        """
+        if enough datapoints are received to do a preditction
+        send data to the specified models and send the result to the ROS nodes
+        :return: nothing
+        """
         print('gathered data')
         data = self.online.get_since_n_as_measurement(self.from_sample)
         # print(data.correct_channels)

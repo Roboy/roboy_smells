@@ -33,7 +33,7 @@ https://drive.google.com/drive/folders/1xjcx6ju0zyZLqKheKkeA-f_Aa2HLEJGM
 As the raspi should be accessible via ssh and a single run take serveral hours, its advisable to start the script in
 a tmux session.
 
-This can be done via:
+This can be done via:s
 
     tmux new -s data
     

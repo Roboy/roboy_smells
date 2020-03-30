@@ -21,7 +21,8 @@ class TestEquimentRunner:
         self.class_sampled[rand_int[0] - 1] += 1
         return rand_int[0]
 
-    # labels[0-7] = labels of 0-7 samples, numLoops = number of iterations to be done, timeLoop = timelength of a single sample in seconds
+    # labels[0-7] = labels of 0-7 samples, numLoops = number of iterations to be done, timeLoop = timelength of a
+    # single sample in seconds
     def __init__(self, labels, numLoops, timeLoopSample, timeLoopRef, useGradientTime=False, filename=None):
         self.class_sampled = [1, 1, 1, 1, 1, 1, 1]
         # initialize eNose

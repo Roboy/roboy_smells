@@ -21,6 +21,9 @@ class ROSMessageRecorder:
         rospy.spin()
 
     def gotNewSample(self):
+        """
+        write sample to csv
+        """
         self.writer.writeSample(self.sub.time, self.sub.sensor_values, self.sub.bme_data, self.sub.label)
 
 

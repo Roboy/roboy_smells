@@ -12,6 +12,10 @@ class eNoseClassificationTestPublisher():
         self.pub_classifier = rospy.Publisher('e_nose_classification', String, queue_size=10)
 
     def send_classification(self, classified: String):
+        """
+        sends the classification as pure ROS string message
+        :param classified: classification as string
+        """
         if not rospy.is_shutdown():
             self.pub_classifier.publish(classified)
         else:
