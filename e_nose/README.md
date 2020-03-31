@@ -1,6 +1,7 @@
 # E-Nose
 
-This package contains all the classes used for getting and processing data from the E-Nose.
+This package contains all the classes used for getting and processing data from the E-Nose.  
+Check the Roboy Confluence project page for more details.
 
 Most important is the class `Measurement` which can be found in `measurements.py`.
 The `Measurement` objects contain a continuous time-series of samples of one smell.
@@ -17,24 +18,21 @@ from e_nose import data_processing as dp
 from e_nose.measurements import Measurement, StandardizationType
 
 data_tuple = file_reader.read_all_files_in_folder('./data/')
-#data_tuple = dp.remove_broken_channels_multi_files(data_tuple)
 functionalisations, working_channels, all_data = data_tuple
 
-measurements_per_file = {}
-for file in all_data:
-    measurements_per_file[file] = dp.get_labeled_measurements(all_data[file], working_channels, functionalisations)
-
-
 measurements = []
-for file in measurements_per_file:
-    print("file: ",file)
-    adding = measurements_per_file[file]
+for file in all_data:
+    meas = dp.get_labeled_measurements(all_data[file], working_channels, functionalisations)
+    # Standardize the measurements using the standardization type
+    # (This method also removes all reference measurements)
+    adding = dp.standardize_measurements(meas, StandardizationType.LAST_REFERENCE)
+    print("file:", file, "has", len(adding), "standardized measurements")
     if adding is not None:
-        # Standardize the measurements using the standardization type
-        # (This method also removes all reference measurements)
-        adding = dp.standardize_measurements(adding, StandardizationType.LAST_REFERENCE)
         measurements.extend(adding)
+
+print("Total number of measurements:", len(measurements))
 ```
+
 or reading from a live data stream using `online_reader.py`:
 ```python
 from e_nose.measurements import DataType, StandardizationType
@@ -51,7 +49,7 @@ measurement = online.get_since_n_as_measurement(50)
 
 ### Processing Methods & Standardization Types
 
-Having a list of `Measurement` objects you usually want to standardize them and use the data in log space.
+Having a list of `Measurement` objects you usually want to standardize them and use the data in log space (default).
 
 Standardization should be done using the given method in `data_processing.py`:
 ```python
@@ -62,7 +60,7 @@ from e_nose.measurements import Measurement, StandardizationType
 standardized_measurements = dp.standardize_measurements(measurements, StandardizationType.LAST_REFERENCE)
 ```
 
-We have implemented 3 ways of standardizing them:
+We have implemented 3 ways of standardizing Measurements:
 
 #### `StandardizationType.LAST_REFERENCE`
 Uses the average of the last 10 samples of the last reference measurement before this measurement.
@@ -80,4 +78,4 @@ The lowpass filter basically gives the slow drifts of the sensor, therefore stan
 but it cannot cope with sensor biases from the strong smell of the measurements just before.
 
 This is especially useful if you cannot be sure that there was a reference measurement just before the new measurement,
-because in theory this makes the sensor adapt rather slowly.
+because in theory this makes the sensor adapt to slow changes.
