@@ -7,7 +7,7 @@ During the semester we tried several models/approaches for classification. Below
 ### 1. Recurrent Models
 These models have the property to learn from sequential data by taking into account historical data. We assume that our sensor data contains informative patterns in the course of the channels before saturating. This way the classifier can make predictions before the sensor is fully saturated. For the recurrent layer we tried both, simple RNN layers as well as Long short-term memory (LSTM) layers that are able to learn which information should be remembered. [1] 
 Both models consist in this recurrent layer followed by 1 - 2 fully connected layers. 
-Furthermore we made experiments with both stateful and stateless models. More information about stateful models can be found [here] (https://www.tensorflow.org/guide/keras/rnn). 
+Furthermore we made experiments with both stateful and stateless models. More information about stateful models can be found [here](https://www.tensorflow.org/guide/keras/rnn). 
 
 Our best performing model architecture consists in a stateful LSTM layer followed by a fully connected layer that returns logits for the different classes at each time step, which we call SmelLSTM.
 
@@ -35,7 +35,7 @@ The simple models (kNN, naive Bayes) use an internal fit function that is called
 For training the neural networks the ray.tune library was used for automated training and testing with parallelized hyperparameter search. The hyperparameter search space as well as the location to store the trained models and the checkpoint frequency can be configured in the train_*model_name*.py files. The documentation of the ray.tune library can be found [here](https://ray.readthedocs.io/en/latest/tune.html).
 ray.tune automatically generates tensorboard files that can be viewed by launching tensorboard with the respective folder.
 
-[1] [WaveNet: A Generative Model for Raw Audio](https://arxiv.org/abs/1609.03499)
+[1] [Learning to Forget: Continual Prediction with LSTM](https://www.researchgate.net/publication/12292425_Learning_to_Forget_Continual_Prediction_with_LSTM)
 
 [2] [WaveNet: A Generative Model for Raw Audio](https://arxiv.org/abs/1609.03499)
 
