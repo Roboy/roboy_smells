@@ -18,10 +18,15 @@ We wanted to try this as it would also directly provide a nice visual representa
 
 The version of the CNN with the triplet loss can be trained by using the train_cnn1d.py file. The tune configuration can be changed as needed for hyperparameter tuning.
 Classic Categorical Cross Entropy: The second approach was to directly predict the classes using a cross entropy loss function. The CNN using this loss can be trained using the train_cnn1d_cel.py file.
-### 3. Baysian Approach
-### 4. kNN
 
-### Training new models:
+### 3. Baysian Approach
+For the baysian approach, the saturated sensor values are assumed to be Gaussian distributed. During training mean and covariance matrix of a Gaussian are fit to the underlying data for each class. During inference a new datapoint the parameterized model is used to find the corresponding class with the highest probability. 
+We had decent results using this approach but on average they were worse than the results we got using the SmelLSTM
+
+### 4. kNN
+The most simple approach we used was a k-nearest-neighbor (kNN). Here we assumed that the saturated sensor values of the same class have a small distance. During inference the classes of the k nearest neighbors are used to predict the class of the new datapoint by performing a (weighted) majority vote. Our best performing model uses 5 neighbors, the euclidean space and a distance weighting.
+
+## Training new models:
 New models can be trained by running the respective files and functions as detailed in the respective python files. For all training runs the training data csv files need to be placed into the data_train directory and the validation data into data_val, respectively. 
 #### Simple model fitting
 The simple models (kNN, naive Bayes) use an internal fit function that is called when a model instance is created (see knn.py and naive_bayes.py). 
@@ -30,3 +35,4 @@ For training the neural networks the ray.tune library was used for automated tra
 ray.tune automatically generates tensorboard files that can be viewed by launching tensorboard with the respective folder.
 
 [1] [WaveNet: A Generative Model for Raw Audio](https://arxiv.org/abs/1609.03499)
+[2] [Triplet Loss](https://en.wikipedia.org/wiki/Triplet_loss)
