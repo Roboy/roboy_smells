@@ -1,5 +1,0 @@
-batch_size=16,
-dim_hidden=8,
-lr=0.034882
-date: 2020-03-03_20-43-532
-class_dict: {'apple_juice': 0, 'coffee_powder': 1, 'orange_juice': 2, 'raisin': 3, 'red_Wine': 4, 'wodka': 5}

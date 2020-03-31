@@ -1,7 +1,0 @@
-{
-  "batch_size": 128,
-  "data_preprocessing": "high_pass",
-  "dim_hidden": 6,
-  "lr": 0.01819056080395175,
-  "return_sequences": true
-}
