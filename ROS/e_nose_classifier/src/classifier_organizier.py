@@ -44,9 +44,9 @@ class ClassifierOrganizer:
         self.recording = False
 
         if self.use_neural_network:
-            self.lstm1 = SmelLSTM(input_shape=(1, 50, num_working_channels), num_classes=6, hidden_dim_simple=6,
+            self.lstm1 = SmelLSTM(input_shape=(1, 50, num_working_channels), num_classes=6, dim_hidden=6,
                                   stateful=False)
-            self.lstm2 = SmelLSTM(input_shape=(1, 1, num_working_channels), num_classes=6, hidden_dim_simple=12,
+            self.lstm2 = SmelLSTM(input_shape=(1, 1, num_working_channels), num_classes=6, dim_hidden=12,
                                   stateful=True)
 
             self.model_name = 'LSTMTrainable_b8effb2c_12_batch_size=64,data_preprocessing=full,dim_hidden=6,lr=0.031576,use_lstm=True_2020-03-09_15-44-15nhhqrc38'
@@ -56,7 +56,7 @@ class ClassifierOrganizer:
             self.lstm1.load_weights(self.model_name, checkpoint=260, path='classification/models/lstm_stateless/')
             self.lstm2.load_weights(self.model_name_2, checkpoint=120, path='classification/models/lstm_stateful/')
 
-            self.classifier = SmelLSTM(input_shape=(1, 1, num_working_channels), num_classes=6, hidden_dim_simple=12)
+            self.classifier = SmelLSTM(input_shape=(1, 1, num_working_channels), num_classes=6, dim_hidden=12)
 
             self.model_name = 'LSTMTrainable_231f7674_15_batch_size=128,data_preprocessing=high_pass,dim_hidden=12,lr=0.050039,stateful=True,use_lstm=True_2020-03-06_21-24-4970osptsr'
             self.classifier.summary()
@@ -64,8 +64,8 @@ class ClassifierOrganizer:
                                          path='classification/models/models_new_train_data_offset/')
 
         else:
-            self.classifier = KNN(num_working_channels, data_dir='data', data_type=self.datatype)
-            self.classifier2 = GNB(data_dir='data', data_type=self.datatype)
+            self.classifier_knn = KNN(num_working_channels, data_dir='data', data_type=self.datatype)
+            self.classifier_gnb = GNB(data_dir='data', data_type=self.datatype)
         print('ros e_nose classification node started successfully')
 
     def startMeas(self):
@@ -113,9 +113,9 @@ class ClassifierOrganizer:
             self.pub.send_classification(prediction)
         else:
             if (data_for_classifier.shape[0] > 40):
-                prediction = self.classifier.predict(data_for_classifier)
-                prediction_gnb = self.classifier2.predict(data_for_classifier)
-                print('prediction_knn: ', prediction)
+                prediction_knn = self.classifier_knn.predict_from_batch(data_for_classifier)
+                prediction_gnb = self.classifier_gnb.predict_from_batch(data_for_classifier)
+                print('prediction_knn: ', prediction_knn)
                 print('prediction_gnb: ', prediction_gnb)
                 self.pub_test.send_classification(prediction_gnb)
                 self.pub.send_classification(prediction_gnb)

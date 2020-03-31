@@ -26,7 +26,6 @@ class GNB:
         :param classes_list:        List of classes to be learnt by model.
         """
         self.input_dim = input_dim
-        self.filter = filter
         self.sequence_length = sequence_length
         self.data_type = data_type
         self.last_avg = last_avg
@@ -43,7 +42,7 @@ class GNB:
 
     def fit(self):
         """
-        Fits the model parameters and an additional PCA to the training datapoints.
+        Fits the model parameters and an additional PCA to the training data.
         """
         measurements_tr, measurements_te, self.correct_channels = dl.get_measurements_train_test_from_dir(self.data_dir, self.data_dir)
         train_data, train_labels = dl.get_data_simple_models(measurements_tr, batch_size=1, sequence_length=self.sequence_length, dimension=self.input_dim,
@@ -61,7 +60,7 @@ class GNB:
 
         :param data:                Data array of shape (dimensions), (sequence_length, dimensions)
                                     or (1, sequence_length, dimensions)
-        :return:                    Prediction for the given data sequence.
+        :return:                    Prediction for the given data sequence or data point.
         """
         if len(data.shape) < 3:
             data = np.expand_dims(data, axis=0)

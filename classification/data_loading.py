@@ -313,7 +313,7 @@ def get_data_stateless(measurements: list, dimension: int = 62, return_sequences
 
     return tf.data.Dataset.from_tensor_slices((tf.constant(full_data), tf.constant(full_labels)))
 
-def get_data_knn(measurements: list, dimension: int = 62, return_sequences: bool = True, sequence_length: int = 45,
+def get_data_simple_models(measurements: list, dimension: int = 62, return_sequences: bool = True, sequence_length: int = 45,
                  masking_value: float = 100.,
                  batch_size: int = 1,
                  classes_dict: dict = None,
