@@ -1,0 +1,8 @@
+{
+  "batch_size": 64,
+  "data_preprocessing": "high_pass",
+  "dim_hidden": 12,
+  "lr": 0.03123909897154905,
+  "return_sequences": true,
+  "use_lstm": true
+}

@@ -40,28 +40,16 @@ class ClassifierOrganizer:
         self.sub.onUpdate += self.got_new_sample
         self.online.invoke_callback += self.gathered_data
         self.use_neural_network = True
-        self.datatype = DataType.FULL
+        self.datatype = DataType.HIGH_PASS
         self.recording = False
 
         if self.use_neural_network:
-            self.lstm1 = SmelLSTM(input_shape=(1, 50, num_working_channels), num_classes=6, dim_hidden=6,
-                                  stateful=False)
-            self.lstm2 = SmelLSTM(input_shape=(1, 1, num_working_channels), num_classes=6, dim_hidden=12,
-                                  stateful=True)
-
-            self.model_name = 'LSTMTrainable_b8effb2c_12_batch_size=64,data_preprocessing=full,dim_hidden=6,lr=0.031576,use_lstm=True_2020-03-09_15-44-15nhhqrc38'
-            self.model_name_2 = 'LSTMTrainable_acc8d910_3_batch_size=128,data_preprocessing=full,dim_hidden=12,lr=0.07236,use_lstm=False_2020-03-09_16-00-30jtxol1uj'
-
-            # self.classifier.summary()
-            self.lstm1.load_weights(self.model_name, checkpoint=260, path='classification/models/lstm_stateless/')
-            self.lstm2.load_weights(self.model_name_2, checkpoint=120, path='classification/models/lstm_stateful/')
-
-            self.classifier = SmelLSTM(input_shape=(1, 1, num_working_channels), num_classes=6, dim_hidden=12)
-
-            self.model_name = 'LSTMTrainable_231f7674_15_batch_size=128,data_preprocessing=high_pass,dim_hidden=12,lr=0.050039,stateful=True,use_lstm=True_2020-03-06_21-24-4970osptsr'
-            self.classifier.summary()
-            self.classifier.load_weights(self.model_name, checkpoint=160,
-                                         path='classification/models/models_new_train_data_offset/')
+            sequence_length = 45
+            self.classifier_lstm = SmelLSTM(input_shape=(1, sequence_length, num_working_channels), num_classes=6, dim_hidden=12,
+                                  stateful=True, data_type=self.datatype)
+            model_name = 'RecurrentModelTrainable_4c22e426_6_batch_size=64,data_preprocessing=high_pass,dim_hidden=12,lr=0.031239,return_sequences=True,use__2020-03-30_23-30-574gm3qftn'
+            self.classifier_lstm.summary()
+            self.classifier_lstm.load_weights(model_name, checkpoint=240, path='classification/models/')
 
         else:
             self.classifier_knn = KNN(num_working_channels, data_dir='data', data_type=self.datatype)
@@ -108,7 +96,7 @@ class ClassifierOrganizer:
         self.pub_meas.send_classification(data_for_classifier)
 
         if self.use_neural_network:
-            prediction = self.lstm2.predict_live(data)
+            prediction = self.classifier_lstm.predict_live(data)
             self.pub_test.send_classification(prediction)
             self.pub.send_classification(prediction)
         else:

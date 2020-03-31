@@ -67,11 +67,9 @@ class KNN:
         if data.shape[1] > self.last_avg:
             sample = np.mean(data[0, -self.last_avg:-1, :], axis=0)
         else:
-            sample = data[-1]
+            sample = data[0, -1]
 
         sample = np.expand_dims(sample, axis=0)
-        print('sample shape', sample.shape)
         p = self.model.predict(sample).flatten()[0]
-        print(p)
         prediction = self.classes_list[p]
         return prediction

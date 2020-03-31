@@ -6,8 +6,10 @@ from e_nose.measurements import Measurement
 
 class SmelLSTM:
 
-    def __init__(self, input_shape, num_classes, masking_value=100., return_sequences=True, simple_model=True, stateful=True,
-                 dim_hidden=6, data_type=DataType.HIGH_PASS, LSTM=True, classes_list=['acetone', 'isopropanol', 'orange_juice', 'pinot_noir', 'raisin', 'wodka']):
+    def __init__(self, input_shape: tuple, num_classes: int = 6, masking_value: float = 100., return_sequences: bool = True, simple_model: bool = True,
+                 stateful: bool = True,
+                 dim_hidden: int = 6, data_type: DataType = DataType.HIGH_PASS, LSTM: bool = True,
+                 classes_list: list = ['acetone', 'isopropanol', 'orange_juice', 'pinot_noir', 'raisin', 'wodka']):
         """
         Class for a classifier based on recurrent neural networks defining the architecture, prediction functions and more.
         Our best performing model architecture consists in a stateful LSTM layer followed by a fully connected layer
@@ -45,7 +47,7 @@ class SmelLSTM:
         else:
             self.model = self.make_model_deeper()
 
-    def load_weights(self, model_name: str, checkpoint: int, path: str = './models/rnn/'):
+    def load_weights(self, model_name: str, checkpoint: int, path: str = './models/'):
         """
         Loads the model weights for given model_name and checkpoint.
 
@@ -123,7 +125,8 @@ class SmelLSTM:
             data_batch = np.expand_dims(data_batch, axis=0)
             if len(data_batch.shape) < 3:
                 data_batch = np.expand_dims(data_batch, axis=0)
-
+        if self.stateful:
+            self.reset_states()
         y = self.model(data_batch, training=False)
         class_indices = np.argmax(y.numpy(), -1).flatten()
         if debugging:
@@ -144,7 +147,8 @@ class SmelLSTM:
         :return:                    Predicted class for given measurement.
         """
         data = measurement.get_data_as(self.data_type)
-        self.model.reset_states()
+        if self.stateful:
+            self.model.reset_states()
         sample = np.empty(shape=self.input_shape)
         for d in range(data.shape[0]):
             sample[0, 0, :] = data[d, :]
