@@ -5,15 +5,16 @@ During the semester we tried several models/approaches for classification. Below
 
 # Models
 ### 1. Recurrent Models
-Recurrent neural networks blabla
-#### 1.1 SmelLSTM
+These models have the property to learn from sequential data by taking into account historical data. We assume that our sensor data contains informative patterns in the course of the channels before saturating. This way the classifier can make predictions before the sensor is fully saturated. For the recurrent layer we tried both, simple RNN layers as well as Long short-term memory (LSTM) layers that are able to learn which information should be remembered. [1] 
+Both models consist in this recurrent layer followed by 1 - 2 fully connected layers. 
+Furthermore we made experiments with both stateful and stateless models. More information about stateful models can be found [here] (https://www.tensorflow.org/guide/keras/rnn). 
+
 Our best performing model architecture consists in a stateful LSTM layer followed by a fully connected layer that returns logits for the different classes at each time step, which we call SmelLSTM.
-#### 1.2 Simple RNN
-simple blabla
+
 ### 2. 1dCNN
-The 1dCNN used here is based on the WaveNet architecture originally designed to work with audio signals [1]. The network - by design - has a lot of parameters even when we tried to simplify it, it still has >100.000 parameters which was too large a network to train with the little amount of data we have. This is why we ultimately switched to using our RNN and SmelLSTM approaches.
+The 1dCNN used here is based on the WaveNet architecture originally designed to work with audio signals [2]. The network - by design - has a lot of parameters even when we tried to simplify it, it still has >100.000 parameters which was too large a network to train with the little amount of data we have. This is why we ultimately switched to using our RNN and SmelLSTM approaches.
 When prototyping the idea for the 1dCNN we tried two different loss function that provided similar results. 
-Triplet Loss: The idea behind the triplet loss is to have an anchor datapoint (measurement in our case), a different positive sample from the same class and a negative sample from another class. The network then learns that the anchor and the positive sample should be close together in the latent space and the anchor and the negative sample far away. [2]
+Triplet Loss: The idea behind the triplet loss is to have an anchor datapoint (measurement in our case), a different positive sample from the same class and a negative sample from another class. The network then learns that the anchor and the positive sample should be close together in the latent space and the anchor and the negative sample far away. [3]
 We wanted to try this as it would also directly provide a nice visual representation since we can show the resulting latent space in 2 or 3 dimensions using PCA.
 
 The version of the CNN with the triplet loss can be trained by using the train_cnn1d.py file. The tune configuration can be changed as needed for hyperparameter tuning.
@@ -31,9 +32,11 @@ New models can be trained by running the respective files and functions as detai
 #### Simple model fitting
 The simple models (kNN, naive Bayes) use an internal fit function that is called when a model instance is created (see knn.py and naive_bayes.py). 
 #### Neural network training
-For training the neural networks the ray.tune library was used for automated training and testing with parallelized hyperparameter search. The hyperparameter search space as well as the location to store the trained models and the checkpoint frequency can be configured in the train_[model_name].py files. The documentation of the ray.tune library can be found [here](https://ray.readthedocs.io/en/latest/tune.html).
+For training the neural networks the ray.tune library was used for automated training and testing with parallelized hyperparameter search. The hyperparameter search space as well as the location to store the trained models and the checkpoint frequency can be configured in the train_*model_name*.py files. The documentation of the ray.tune library can be found [here](https://ray.readthedocs.io/en/latest/tune.html).
 ray.tune automatically generates tensorboard files that can be viewed by launching tensorboard with the respective folder.
 
 [1] [WaveNet: A Generative Model for Raw Audio](https://arxiv.org/abs/1609.03499)
 
-[2] [Triplet Loss](https://en.wikipedia.org/wiki/Triplet_loss)
+[2] [WaveNet: A Generative Model for Raw Audio](https://arxiv.org/abs/1609.03499)
+
+[3] [Triplet Loss](https://en.wikipedia.org/wiki/Triplet_loss)
