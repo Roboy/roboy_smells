@@ -3,10 +3,25 @@ import tensorflow as tf
 
 from e_nose import file_reader
 from e_nose import data_processing as dp
-from e_nose.measurements import StandardizationType, DataType
+from e_nose.measurements import StandardizationType, DataType, Measurement
 from scipy import signal
+from typing import List
 
-def butter_lowpass_filter(data, cutoff, fs, order):
+"""
+This file contains data loading utilities for training the different ML models.
+"""
+
+def butter_lowpass_filter(data: np.ndarray, cutoff: float, fs: float, order: int) -> np.ndarray:
+    """
+    This method initialises the scipy butter lowpass filter with the given parameters and then
+    filters the given data.
+
+    :param data: input data to be filtered
+    :param cutoff: cutoff frequency
+    :param fs: sample rate of the data signal
+    :param order: the order of the filter
+    :return: filtered data
+    """
     nyq = 0.5 * fs
     normal_cutoff = cutoff / nyq
     # Get the filter coefficients
@@ -14,7 +29,20 @@ def butter_lowpass_filter(data, cutoff, fs, order):
     y = signal.filtfilt(b, a, data)
     return y
 
-def low_pass_mean_std_measurement(measurements, sample_rate=0.5, cutoff_freq=0.02, order=2):
+def low_pass_mean_std_measurement(measurements: List[Measurement],
+                                  sample_rate: float=0.5,
+                                  cutoff_freq: float=0.02,
+                                  order: int=2) -> list:
+    """
+    This method filters the data for each measurement using a low pass filter and then normalizes the data with
+    mean and standard deviation.
+
+    :param measurements: measurements to be processed
+    :param sample_rate: sample rate of the data points in the measurements
+    :param cutoff_freq: cutoff frequency for the low pass filter
+    :param order: order of the low pass filter
+    :return: filtered and normalized signal for every measurement
+    """
     for meas in measurements:
         data = meas.get_data()
         ys = np.zeros_like(data)
@@ -30,15 +58,24 @@ def low_pass_mean_std_measurement(measurements, sample_rate=0.5, cutoff_freq=0.0
         meas.data = ys
     return measurements
 
-def get_measurements_train_test_from_dir(train_dir='../data', test_dir='../data'):
+def get_measurements_train_test_from_dir(train_dir: str = '../data', test_dir: str = '../data') -> (np.ndarray, np.ndarray, int):
+    """
+    This method gets train and test data from the respective directories. It uses the correct channels found in
+    the test file to guarantee that the models are not trained on less data than there is available in the test
+    files
+
+    :param train_dir: path to directory containing the train data
+    :param test_dir: path to directory containing the test data
+    :return: array of train and test measurements and the number of broken channels.
+    """
     functionalisations_train, correct_channels, data_train = file_reader.read_all_files_in_folder(train_dir)
     functionalisations_test, correct_channels, data_test = file_reader.read_all_files_in_folder(test_dir)
 
     combined = data_train.copy()
     combined.update(data_test)
 
-    correct_channels = dp.find_broken_channels_multi_files(functionalisations_test, combined)
-    dp.find_broken_channels_multi_files
+    correct_channels = dp.detect_broken_channels_multi_files(functionalisations_test, combined)
+    dp.detect_broken_channels_multi_files
 
     measurements_per_file_test = {}
     for file in data_test:
@@ -63,7 +100,13 @@ def get_measurements_train_test_from_dir(train_dir='../data', test_dir='../data'
 
     return np.array(measurements_train), np.array(measurements_test), np.count_nonzero(correct_channels)
 
-def get_measurements_from_dir(directory_name='../data'):
+def get_measurements_from_dir(directory_name: str= '../data') -> np.ndarray:
+    """
+    This method returns the standarized measurements found in the data in the specified directory.
+
+    :param directory_name: path of the directory containing the data
+    :return: array of measurements
+    """
     functionalisations, correct_channels, data = file_reader.read_all_files_in_folder(directory_name)
     print(np.count_nonzero(correct_channels))
     measurements_per_file = {}
@@ -79,7 +122,14 @@ def get_measurements_from_dir(directory_name='../data'):
     return np.array(measurements)
 
 
-def train_test_split(measurements, split=0.8):
+def train_test_split(measurements: np.ndarray, split: float = 0.8) -> (np.ndarray, np.ndarray):
+    """
+    This method splits an array of measurements into train and test data sets with the specified split.
+
+    :param measurements: array of measurements
+    :param split: percentage of data that should be in the train data set
+    :return: train measurement array and test measurement array
+    """
     labels_measurements = [m.label for m in measurements]
     labels = np.unique(labels_measurements)
 
@@ -88,7 +138,6 @@ def train_test_split(measurements, split=0.8):
 
         num_samples = indices_label.size
         if i == 0:
-            #print(int(split*num_samples))
             measurements_train = measurements[indices_label][:int(split*num_samples)]
             measurements_test = measurements[indices_label][int(split*num_samples):]
         else:
@@ -100,8 +149,14 @@ def train_test_split(measurements, split=0.8):
 
     return measurements_train, measurements_test
 
+def shuffle(dataset_one: np.ndarray, dataset_two: np.ndarray = None) -> np.ndarray:
+    """
+    Function to shuffle one or respectively two datasets.
 
-def shuffle(dataset_one, dataset_two=None):
+    :param dataset_one:                 Dataset array to be shuffled.
+    :param dataset_two:                 Second dataset to be shuffled if defined.
+    :return:                            Shuffled datasets.
+    """
     np.random.shuffle(dataset_one)
     if dataset_two is not None:
         np.random.shuffle(dataset_two)
@@ -109,14 +164,40 @@ def shuffle(dataset_one, dataset_two=None):
     else:
         return dataset_one
 
+def get_batched_data(measurements: list, classes_dict: dict = None, masking_value: float = 100., data_type: DataType = DataType.HIGH_PASS,
+                     batch_size: int = 64,
+                     sequence_length: int = 45,
+                     dimension: int = 62,
+                     return_sequences: bool = True) -> (np.ndarray, np.ndarray, list):
+    """
+    This function loads the data and labels as batches for training a stateful recurrent model. Therefore a certain ordering
+    of the data is required. For further information we refer to the stateful training tutorial of the tf.keras library.
 
-def get_batched_data(measurements, classes_dict, masking_value, data_type=DataType.HIGH_PASS, batch_size=4, sequence_length=4, dimension=64, return_sequences=True):
+    :param measurements:                List of Measurement objects from which data will be obtained.
+    :param classes_dict:                Classes dictionary.
+    :param masking_value:               Masking value used to pad sequences. Data points with this value will ignored by network.
+    :param data_type:                   Type of data preprocessing.
+    :param batch_size:                  Batch size.
+    :param sequence_length:             Length of data sequence.
+    :param dimension:                   Number of dimensions of data. Should be equal to the least common number of
+                                        correctly working channels for the given measurements.
+    :param return_sequences:            If set to True, batched labels will be of shape (batch_size, sequence_length, 1),
+                                        otherwise (batch_size, 1)
+    :return:                            Batched data array of shape (Number of batches, batch_size, sequence_length, dimension),
+                                        batched label array of shape (Number of batches, batch_size, (sequence_length,) 1),
+                                        list of batch indices where sequences start and therefore state resets should be performed.
+    """
+    if classes_dict == None:
+        classes_list = ['acetone', 'isopropanol', 'orange_juice', 'pinot_noir', 'raisin', 'wodka']
+        classes_dict = {}
+        for i, c in enumerate(classes_list):
+            classes_dict[c] = i
 
     measurement_indices = np.arange(len(measurements))
     np.random.shuffle(measurement_indices)
 
     padding = batch_size-(measurement_indices.size % batch_size)
-    measurement_indices = np.append(measurement_indices, np.ones(padding, dtype=int) * int(masking_value))
+    measurement_indices = np.append(measurement_indices, np.ones(padding, dtype=int) * (-1))
     measurement_indices = np.reshape(measurement_indices, (-1, batch_size))
 
     batches_data = []
@@ -130,10 +211,8 @@ def get_batched_data(measurements, classes_dict, masking_value, data_type=DataTy
         max_len = 0
         for b in range(batch_size):
             index = batch_indices[b]
-            #print(index)
-            if index != masking_value:
+            if index != -1:
                 series_data = measurements[index].get_data_as(data_type)
-                #print(classes_dict[measurements[index].label])
                 series_labels = np.ones(shape=(series_data.shape[0], 1), dtype=int) * classes_dict[measurements[index].label]
             else:
                 series_data = np.ones(shape=(1, dimension), dtype=float) * masking_value
@@ -154,7 +233,6 @@ def get_batched_data(measurements, classes_dict, masking_value, data_type=DataTy
         batches_labels.append(batch_labels)
 
     for i, ba in enumerate(batches_data):
-        #print("ba:", ba.shape)
         ba_labels = batches_labels[i]
         padding_length = sequence_length - (ba.shape[1] % sequence_length)
         if padding_length != sequence_length:
@@ -175,10 +253,6 @@ def get_batched_data(measurements, classes_dict, masking_value, data_type=DataTy
             batches_labels_done = np.append(batches_labels_done, ba_labels, axis=0)
 
     batches_labels_done = batches_labels_done.astype(int)
-    #print(type(batches_labels_done))
-
-    #print(batches_data_done.shape)
-    #print(batches_labels_done.shape)
 
     if return_sequences == False:
         batches_labels_done_stateless = np.empty(shape=(batches_labels_done.shape[0],
@@ -187,14 +261,29 @@ def get_batched_data(measurements, classes_dict, masking_value, data_type=DataTy
         for i, y in enumerate(batches_labels_done):
             batches_labels_done_stateless[i] = y[:, 0, :]
         batches_labels_done = batches_labels_done_stateless
-    #print('batches_labels_done.shape: ', batches_labels_done.shape)
-    #print('batches_labels_done: ', batches_labels_done)
-
 
     return batches_data_done, batches_labels_done, starting_indices
 
+def get_data_stateless(measurements: list, dimension: int = 62, return_sequences: bool = True, sequence_length: int = 45,
+                       masking_value: float = 100.,
+                       batch_size: int = 64,
+                       classes_dict: dict = None,
+                       data_type: DataType = DataType.HIGH_PASS) -> tf.data.Dataset:
+    """
+    This function loads the data and labels as batches for training a stateless recurrent model.
 
-def get_data_stateless(measurements, dimension=35, return_sequences=True, augment=False, sequence_length=50, masking_value=100., batch_size=64, classes_dict=None, data_type=DataType.HIGH_PASS):
+    :param measurements:                List of Measurement objects from which data will be obtained.
+    :param dimension:                   Number of dimensions of data. Should be equal to the least common number of
+                                        correctly working channels for the given measurements.
+    :param return_sequences:            If set to True, label batches will be of shape (batch_size, sequence_length, 1),
+                                        otherwise (batch_size, 1).
+    :param sequence_length:             Length of data sequence.
+    :param masking_value:               Masking value used to pad sequences. Data points with this value will ignored by network.
+    :param batch_size:                  Batch size.
+    :param classes_dict:                Classes dictionary.
+    :param data_type:                   Type of data preprocessing.
+    :return:                            tf.data.Dataset containing data and label batches.
+    """
     if classes_dict == None:
         classes_list = ['acetone', 'isopropanol', 'orange_juice', 'pinot_noir', 'raisin', 'wodka']
         classes_dict = {}
@@ -222,14 +311,30 @@ def get_data_stateless(measurements, dimension=35, return_sequences=True, augmen
         full_data[i] = m.get_data_as(data_type)[:sequence_length, :]
         full_labels[i] = np.ones(shape=labels_shape, dtype=int)*classes_dict[m.label]
 
-    #indices = np.arange(full_labels.shape[0])
-    #np.random.shuffle(indices)
-
-    print(full_data.shape, full_labels.shape)
-
     return tf.data.Dataset.from_tensor_slices((tf.constant(full_data), tf.constant(full_labels)))
 
-def get_data_knn(measurements, dimension=35, return_sequences=True, augment=False, sequence_length=50, masking_value=100., batch_size=1, classes_dict=None, data_type=DataType.HIGH_PASS):
+def get_data_knn(measurements: list, dimension: int = 62, return_sequences: bool = True, sequence_length: int = 45,
+                 masking_value: float = 100.,
+                 batch_size: int = 1,
+                 classes_dict: dict = None,
+                 data_type: DataType = DataType.HIGH_PASS) -> (np.ndarray, np.ndarray):
+    """
+    This function loads data and labels from a list of measurements for kNN and naive Bayes classifier.
+    For this the sub samples of the data sequence after a certain time specified by sequence length are taken.
+
+    :param measurements:                List of Measurement objects from which data will be obtained
+    :param dimension:                   Number of dimensions of data. Should be equal to the least common number of
+                                        correctly working channels for the given measurements.
+    :param return_sequences:            If set to True, label batches will be of shape (Number of samples, sequence_length, 1),
+                                        otherwise (Number of samples, 1).
+    :param sequence_length:             The data points at sequence_length will be taken.
+    :param masking_value:               List of Measurement objects from which data will be obtained.
+    :param batch_size:                  Batch size.
+    :param classes_dict:                Classes dictionary.
+    :param data_type:                   Type of data preprocessing.
+    :return:                            Data array of shape (Number of samples, sequence_length, dimension)
+                                        labels array of shape (Number of samples, (sequence_length,) 1)
+    """
     if classes_dict == None:
         classes_list = ['acetone', 'isopropanol', 'orange_juice', 'pinot_noir', 'raisin', 'wodka']
         classes_dict = {}
@@ -260,31 +365,4 @@ def get_data_knn(measurements, dimension=35, return_sequences=True, augment=Fals
         full_data[i] = m.get_data_as(data_type)[:sequence_length, :]
         full_labels[i] = np.ones(shape=labels_shape, dtype=int)*classes_dict[m.label]
 
-    #indices = np.arange(full_labels.shape[0])
-    #np.random.shuffle(indices)
-
-    print(full_data.shape, full_labels.shape)
-
     return full_data, full_labels
-
-'''
-measurements = get_measurements_from_dir('../data_test')[:6]
-data, labels = get_data_stateless(measurements, return_sequences=False , dimension=42)
-print(labels)
-
-import tensorflow as tf
-dataset = tf.data.Dataset.from_tensor_slices((tf.constant(data), tf.constant(labels)))
-
-dataset = dataset.batch(2)
-
-print(dataset)
-
-for i in range(2):
-    if i > 0:
-        dataset = dataset.shuffle(len(measurements))
-    for X, y in dataset:
-        #print(X)
-        print(y)
-    print('#############################################################')
-
-'''

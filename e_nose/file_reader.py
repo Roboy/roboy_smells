@@ -18,6 +18,7 @@ def convert_to_datetime(possible_date: str) -> datetime:
 
 
 def load_sensor_preset(preset_file: str) -> np.ndarray:
+    """ Load a given sensor preset-file from the folder ./presets/ (relative to this file or to the working dir) """
     localpath = Path(__file__).absolute().parent.joinpath("presets/" + preset_file)
     if localpath.is_file():
         return np.loadtxt(localpath, int)
@@ -26,6 +27,9 @@ def load_sensor_preset(preset_file: str) -> np.ndarray:
 
 
 def get_sensor_spec(sensor_id: int) -> Tuple[Functionalisations_t, WorkingChannels_t]:
+    """ Get the specification of a certain sensor aka.
+        the Functionalisations and which channels are known to be broken
+    """
     functionalisations: np.ndarray = np.array([])
     failures: np.ndarray = np.array([])
 

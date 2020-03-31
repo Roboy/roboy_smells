@@ -1,18 +1,42 @@
 from typing import List, Optional
 
 import numpy as np
-from .measurements import DataType, DataRowsSet_t
+from .measurements import DataType, DataRowsSet_t, Measurement, Functionalisations_t
 import matplotlib.pyplot as plt
 
 plt.rcdefaults()
 
+"""
+This file contains various methods for easily showing (printing and plotting) relevant information about measurement
+objects.
+"""
 
 def pretty_print(data: DataRowsSet_t):
+    """
+    Prints all the data available in a given measurement data
+    :param data: e_nose sensor data
+    """
     for ts in data:
         print(ts, ":", data[ts]['channels'], ";label:", data[ts]['label'])
 
 
-def draw_bar_meas(measurements, datatypes: List[DataType], standardize=True, force=False, num_last=1, num_samples=1):
+def draw_bar_meas(measurements: List[Measurement],
+                    datatypes: List[DataType],
+                    standardize: bool=True,
+                    force: bool=False,
+                    num_last: int=1,
+                    num_samples: int=1):
+    """
+    This method draws all measurements in the measurements array as a bar graph using all specified datatypes.
+
+
+    :param measurements: List of measurements that should be drawn
+    :param datatypes: List of datatypes that the measurements should be drawn for
+    :param standardize: When standardize is True, the reference measurement will be used to standardise the data if available.
+    :param force: When force is True, cached data will be ignored (i.e. recalculated)
+    :param num_last: needed for DataType.LAST_AVG as is average the num_last measurements
+    :param num_samples: total number of measurements
+    """
     colors = ['xkcd:black', 'xkcd:blue', 'xkcd:brown', 'xkcd:golden yellow', 'xkcd:emerald green',
               'xkcd:baby blue', 'xkcd:magenta', 'xkcd:violet', 'xkcd:lightgreen']
     for measurement in measurements:
@@ -42,8 +66,25 @@ def draw_bar_meas(measurements, datatypes: List[DataType], standardize=True, for
         plt.show()
 
 
-def draw_bar_meas_direct_comp(measurements, functionalisations, datatype, standardize=True, force=False, num_last=1,
-                              num_samples=1):
+def draw_bar_meas_direct_comp(measurements: List[Measurement],
+                                functionalisations: Functionalisations_t,
+                                datatype: DataType,
+                                standardize: bool=True,
+                                force: bool=False,
+                                num_last: int=1,
+                                num_samples: int=1):
+    """
+    This method uses the specified datatype method and groups all measurements of the same label together to be able
+    to easily compare them. Only group datatypes are supported.
+
+    :param measurements: List of measurements that should be drawn
+    :param functionalisations: functionalisation for the measurements
+    :param datatype: datatype that should be drawn
+    :param standardize: When standardize is True, the reference measurement will be used to standardise the data if available.
+    :param force: When force is True, cached data will be ignored (i.e. recalculated)
+    :param num_last: needed for DataType.LAST_AVG as is average the num_last measurements
+    :param num_samples: total number of measurements
+    """
     if not datatype.is_grouped():
         print("Data type not supported (yet?)")
         return
@@ -93,7 +134,16 @@ def draw_bar_meas_direct_comp(measurements, functionalisations, datatype, standa
     plt.show()
 
 
-def draw_meas_channel_over_time(measurement, functionalisations, standardize=True, draw_ref=True):
+def draw_meas_channel_over_time(measurement: Measurement,
+                                functionalisations: Functionalisations_t,
+                                standardize: bool=True):
+    """
+    Draws each channels data over time for one measurement
+
+    :param measurement: Measurement that should be drawn
+    :param functionalisations: functionalisations of that measurement
+    :param standardize: When standardize is True, the reference measurement will be used to standardise the data if available.
+    """
     colors = ['xkcd:black', 'xkcd:blue', 'xkcd:brown', 'xkcd:golden yellow', 'xkcd:emerald green',
               'xkcd:baby blue', 'xkcd:magenta', 'xkcd:violet', 'xkcd:lightgreen']
 
@@ -107,7 +157,18 @@ def draw_meas_channel_over_time(measurement, functionalisations, standardize=Tru
     plt.show()
 
 
-def draw_meas_grad_over_time(measurement, functionalisations, standardize=True, draw_ref=True):
+def draw_meas_grad_over_time(measurement: Measurement,
+                             functionalisations: Functionalisations_t,
+                             standardize: bool=True,
+                             draw_ref: bool=True):
+    """
+    This method draws the gradient of the given measurement's data.
+
+    :param measurement: Measurement that should be drawn
+    :param functionalisations: functionalisations of that measurement
+    :param draw_ref: True if the reference measurement shall be drawn as well
+    :param standardize: When standardize is True, the reference measurement will be used to standardise the data if available.
+    """
     colors = ['xkcd:black', 'xkcd:blue', 'xkcd:brown', 'xkcd:golden yellow', 'xkcd:emerald green',
               'xkcd:baby blue', 'xkcd:magenta', 'xkcd:violet', 'xkcd:lightgreen']
 
@@ -123,12 +184,48 @@ def draw_meas_grad_over_time(measurement, functionalisations, standardize=True, 
     plt.show()
 
 
-def draw_all_channel_data_as_line(all_data, functionalisations, num_from=0, num_to=-1, secondary=None):
+def draw_all_channel_data_as_line(all_data: np.ndarray,
+                                  functionalisations: Functionalisations_t,
+                                  num_from: int=0,
+                                  num_to: int=-1,
+                                  secondary: np.ndarray=None):
+    """
+    This method draws all the data of all channels from the measurement files (not a list of measurements!)
+    as line graphs.
+
+    It is possible to provide a set of secondary data (e.g. temperature/humidity) also as an array and it will be
+    plotted over the e_nose data.
+
+    :param all_data: the data as an array
+    :param functionalisations: functionalisations of each channel -> the lines will be colored accordingly
+    :param num_from: datapoint from which to draw
+    :param num_to: datapoint to which should be drawn, -1 to show everything (other -x not supported)
+    :param secondary: data array for the secondary axis.
+    """
     draw_selected_channel_data_as_line(all_data, functionalisations, list(range(len(functionalisations))), num_from,
                                        num_to, secondary)
 
 
-def draw_selected_channel_data_as_line(all_data, functionalisations, channels, num_from=0, num_to=-1, secondary=None):
+def draw_selected_channel_data_as_line(all_data: np.ndarray,
+                                       functionalisations: Functionalisations_t,
+                                       channels: List[int],
+                                       num_from: int=0,
+                                       num_to: int=-1,
+                                       secondary: np.ndarray=None):
+    """
+    This method draws all the data of the selected channels from the measurement files (not a list of measurements!)
+    as line graphs.
+
+    It is possible to provide a set of secondary data (e.g. temperature/humidity) also as an array and it will be
+    plotted over the e_nose data.
+
+    :param all_data: the data as an array
+    :param functionalisations: functionalisations of each channel -> the lines will be colored accordingly
+    :param channels: channels to be plotted
+    :param num_from: datapoint from which to draw
+    :param num_to: datapoint to which should be drawn, -1 to show everything (other -x not supported)
+    :param secondary: data array for the secondary axis.
+    """
     colors = ['xkcd:black', 'xkcd:blue', 'xkcd:brown', 'xkcd:golden yellow', 'xkcd:emerald green',
               'xkcd:baby blue', 'xkcd:magenta', 'xkcd:violet', 'xkcd:lightgreen']
 

@@ -1,13 +1,18 @@
-from e_nose.measurements import DataType
-from e_nose.measurements import Measurement
 import numpy as np
 import tensorflow as tf
+
+from e_nose.measurements import DataType
+from e_nose.measurements import Measurement
 
 class SmelLSTM:
 
     def __init__(self, input_shape, num_classes, masking_value=100., return_sequences=True, simple_model=True, stateful=True,
-                 hidden_dim_simple=6, data_type=DataType.HIGH_PASS, LSTM=True, classes_list=['acetone', 'isopropanol', 'orange_juice', 'pinot_noir', 'raisin', 'wodka']):
+                 dim_hidden=6, data_type=DataType.HIGH_PASS, LSTM=True, classes_list=['acetone', 'isopropanol', 'orange_juice', 'pinot_noir', 'raisin', 'wodka']):
         """
+        Class for a classifier based on recurrent neural networks defining the architecture, prediction functions and more.
+        Our best performing model architecture consists in a stateful LSTM layer followed by a fully connected layer
+        that returns logits for the different classes at each time step, which we call SmelLSTM.
+        However, also other models are possible, for instance simple RNN, more FC layers, stateless model, sequence classifying models and more.
 
         :param input_shape:         Shape of input data.
         :param num_classes:         Number of different classes.
@@ -15,7 +20,8 @@ class SmelLSTM:
         :param return_sequences:    If set to True, model will output one prediction per time step, otherwise one prediction for one sequence.
         :param simple_model:        Specifies whether to use simple model with one hidden FC layer after recurrent layer or deeper model.
         :param stateful:            Specifies whether to use a stateful recurrent model.
-        :param hidden_dim_simple:   Number of neurons in hidden layer for simple model.
+        :param dim_hidden:          Number of neurons in hidden layer for simple model.
+                                    For the deeper model the number of neurons for all hidden layers will also be obtained from this value.
         :param data_type:           Type of data preprocessing.
         :param LSTM:                Specifies whether LSTM or simple RNN will be used.
         :param classes_list:        List of classes to be learnt by model.
@@ -26,7 +32,7 @@ class SmelLSTM:
         self.return_sequences = return_sequences
         self.simple_model = simple_model
         self.stateful = stateful
-        self.hidden_dim_simple = hidden_dim_simple
+        self.dim_hidden = dim_hidden
         self.batch_size = input_shape[0]
         self.sequence_length = input_shape[1]
         self.dimension = input_shape[2]
@@ -41,6 +47,7 @@ class SmelLSTM:
 
     def load_weights(self, model_name: str, checkpoint: int, path: str = './models/rnn/'):
         """
+        Loads the model weights for given model_name and checkpoint.
 
         :param model_name:          Name of weights set.
         :param checkpoint:          Training checkpoint equivalent to epoch at which weights are extracted.
@@ -51,8 +58,10 @@ class SmelLSTM:
 
     def make_model(self) -> tf.keras.Model:
         """
+        Defines RNN or LSTM model with following simple architecture:
+        Masking layer --> Recurrent layer [output: dim_hidden] --> FC layer [output: num_classes]
 
-        :return:                    RNN/LSTM Model with simple architecture.
+        :return:                    Model.
         """
         from tensorflow import keras
 
@@ -73,12 +82,14 @@ class SmelLSTM:
 
     def make_model_deeper(self) -> tf.keras.Model:
         """
+        Defines RNN or LSTM model with following deeper architecture:
+        Masking layer --> Recurrent layer [output: dim_hidden] --> FC layer [output: dim_hidden/2] --> FC layer [output: num_classes]
 
-        :return:                    RNN/LSTM Model with deeper architecture.
+        :return:                    Model.
         """
         from tensorflow import keras
         
-        hidden_dim_1 = self.hidden_dim_simple
+        hidden_dim_1 = self.dim_hidden
         hidden_dim_2 = int(hidden_dim_1 * 0.5)
 
         model = keras.models.Sequential()
@@ -101,6 +112,7 @@ class SmelLSTM:
 
     def predict_from_batch(self, data_batch: np.ndarray, debugging: bool = False) -> str:
         """
+        Classifies given data batch and returns prediction.
 
         :param data_batch:          Array of data sequence to be classified. Should be of shape (1, sequence length, dimensions) or (sequence length, dimensions).
                                     For shape (dimensions) data will be treated as a sequence of length = 1.
@@ -126,19 +138,19 @@ class SmelLSTM:
 
     def predict_live(self, measurement: Measurement) -> object:
         """
+        Classifies given measurement and returns prediction.
 
         :param measurement:         Measurement object (e_nose.measurements.Measurement) to be classified
         :return:                    Predicted class for given measurement.
         """
         data = measurement.get_data_as(self.data_type)
-        #print(data.shape)
         self.model.reset_states()
         sample = np.empty(shape=self.input_shape)
         for d in range(data.shape[0]):
             sample[0, 0, :] = data[d, :]
             y = self.model(sample, training=False)
             prediction = self.classes_list[np.argmax(y.numpy(), -1).flatten()[0]]
-            #print(prediction)
+
         return prediction
 
     def reset_states(self):

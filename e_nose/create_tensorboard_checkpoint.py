@@ -1,11 +1,15 @@
 import os
-from pathlib import Path
 import tensorflow as tf
 from tensorflow.contrib.tensorboard.plugins import projector
 import numpy as np
 from e_nose import file_reader
 from e_nose import data_processing as dp
 from e_nose.measurements import DataType
+
+"""
+This file generates a tensorboard file where it is possible to view the given measurement data in the 
+DATA_DIR directory using a PCA or SVD analysis.
+"""
 
 appendix = ''
 LOG_DIR = 'logs' + appendix
@@ -14,14 +18,10 @@ NUM_CPU_CORES = 6
 NUM_THREADS_PER_CORE = 2
 datatype = DataType.TOTAL_AVG
 
-# TODO maybe make this configurable so multiple metadata files are possible
 metadata = 'metadata.tsv'
 
 # Read in data
-# TODO: make the data dir configurable
-path_data = os.path.join(Path(os.curdir).parent, Path(DATA_DIR))
-print(str(path_data))
-functionalisations, correct_channels, data = file_reader.read_all_files_in_folder(path_data)
+functionalisations, correct_channels, data = file_reader.read_all_files_in_folder(DATA_DIR)
 
 # Get measurements out of data and standardize it
 measurements_per_file = {}
@@ -40,7 +40,7 @@ print('Total of', len(measurements), 'measurements')
 assert (len(measurements) > 0)
 
 # Save data to tf variable
-ms = np.zeros((len(measurements), 63))
+ms = np.zeros((len(measurements), 62))
 ls = []
 for i, measurement in enumerate(measurements):
     # TODO make type of measurement average configureable
@@ -65,7 +65,6 @@ with tf.compat.v1.Session(config=config) as sess:
 
     sess.run(tf_ms.initializer)
     print(tf_ms.shape)
-    # TODO maybe make this configurable so multiple ckpt files are possible
     saver.save(sess, os.path.join(LOG_DIR, 'ms.ckpt'))
 
     config = projector.ProjectorConfig()
