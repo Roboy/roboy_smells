@@ -74,8 +74,8 @@ def get_measurements_train_test_from_dir(train_dir: str = '../data', test_dir: s
     combined = data_train.copy()
     combined.update(data_test)
 
-    correct_channels = dp.find_broken_channels_multi_files(functionalisations_test, combined)
-    dp.find_broken_channels_multi_files
+    correct_channels = dp.detect_broken_channels_multi_files(functionalisations_test, combined)
+    dp.detect_broken_channels_multi_files
 
     measurements_per_file_test = {}
     for file in data_test:

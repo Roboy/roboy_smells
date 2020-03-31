@@ -9,7 +9,12 @@ from scipy import signal
 def standardize_measurements(measurements: List[Measurement],
                              type: StandardizationType = StandardizationType.LAST_REFERENCE,
                              remove_ref: bool = True) -> List[Measurement]:
-    """ Sets the standardization of all measurement according to the given parameter """
+    """ Sets the standardization of all measurement according to the given type parameter
+        Removes reference measurements from the list if the parameter is set to true (default)
+        (=> not continuous anymore afterwards)
+        For StandardizationType LAST_REFERENCE and LOWPASS_FILTER, it is paramount that the list of measurements
+        that is passed is continuous data.
+    """
 
     if type == StandardizationType.LAST_REFERENCE:
         return standardize_measurements_lastref(measurements, remove_ref)
@@ -127,8 +132,8 @@ def balance_measurements_by_label(measurements: List[Measurement]) -> List[Measu
 BROKEN_THRESHOLD_OFFSET: float = 1.0
 
 
-def find_broken_channels(functionalisations: Functionalisations_t, data: DataRowsSet_t,
-                         debug: bool = True) -> WorkingChannels_t:
+def detect_broken_channels(functionalisations: Functionalisations_t, data: DataRowsSet_t,
+                           debug: bool = True) -> WorkingChannels_t:
     """ Finds broken channels and returns a list of WORKING channels
     channels are interpreted as broken if their minimum is the same as the smallest channels minimum
     """
@@ -149,8 +154,8 @@ def find_broken_channels(functionalisations: Functionalisations_t, data: DataRow
     return working_channels
 
 
-def find_broken_channels_multi_files(functionalisations: Functionalisations_t,
-                                     all_data: Dict[str, DataRowsSet_t], debug: bool = True) -> WorkingChannels_t:
+def detect_broken_channels_multi_files(functionalisations: Functionalisations_t,
+                                       all_data: Dict[str, DataRowsSet_t], debug: bool = True) -> WorkingChannels_t:
     """ Finds broken channels and returns a list of WORKING channels
     channels are interpreted as broken if their minimum is the same as the smallest channels minimum """
     failure_bits = np.zeros((len(functionalisations)), bool)
@@ -225,8 +230,11 @@ def get_labeled_measurements(data: DataRowsSet_t, correct_channels: WorkingChann
     :param data:
     :param correct_channels:
     :param functionalisations:
-    :param start_offset: Offset(s) for the start of every measurement ; negative = earlier start ; list = multiply measurements
-    !! Be careful: STANDARDIZATION might break if list if offsets is passed
+    :param start_offset: Offset(s) for the start of every measurement <br>
+        negative = earlier start <br>
+        list = generate multiple measurement objects with different offsets <br>
+        !! Be careful: STANDARDIZATION might break if list of offsets is passed
+        (resulting measurement list is not continuous anymore) !!
     :param debug:
     :return:
     """
@@ -389,6 +397,12 @@ def get_measurement_peak_average(data: np.ndarray, num_samples=10) \
 
 def group_meas_data_by_functionalisation(data: np.ndarray, functionalisations: Functionalisations_t) \
         -> np.ndarray:
+    """
+    Groups e_nose measurement data by their functionalities
+    :param data:
+    :param functionalisations:
+    :return: List of averages by functionalization
+    """
     averages = None
     for row in data:
         if averages is None:
@@ -400,24 +414,24 @@ def group_meas_data_by_functionalisation(data: np.ndarray, functionalisations: F
     return averages
 
 
-def group_row_data_by_functionalities(row: np.ndarray, functionalities: Functionalisations_t) \
+def group_row_data_by_functionalities(row: np.ndarray, functionalisations: Functionalisations_t) \
         -> Tuple[Mapping[int, Dict[str, List[float]]], List[float]]:
     """
     Groups a single Row of e_nose measurement data by their functionalities
     :param row:
-    :param functionalities:
+    :param functionalisations:
     :return: Tuple consisting of values grouped by functionalization, averages by functionalization
     """
     grouped_data: Mapping[int, Dict[str, List[float]]] = {}
-    averaged_data: List[float] = [0] * (1 + np.max(list(map(int, functionalities))))
-    for i in np.unique(functionalities):
+    averaged_data: List[float] = [0] * (1 + np.max(list(map(int, functionalisations))))
+    for i in np.unique(functionalisations):
         grouped_data[int(i)] = {'values': []}
 
-    for value, function in np.vstack((row, functionalities)).T:
+    for value, function in np.vstack((row, functionalisations)).T:
         grouped_data[int(function)]['values'].append(float(value))
         averaged_data[int(function)] = averaged_data[int(function)] + float(value)
 
-    for i in np.unique(functionalities):
+    for i in np.unique(functionalisations):
         averaged_data[int(i)] = averaged_data[int(i)] / len(grouped_data[i]['values'])
 
     return grouped_data, averaged_data
