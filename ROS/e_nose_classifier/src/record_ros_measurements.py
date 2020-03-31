@@ -1,5 +1,5 @@
 from ROS.e_nose_classifier.src.e_nose_subscriber import eNoseSubscriber
-from test_equiment.Classes.CSVWriter import CSVWriter
+from test_equipment.Classes.CSVWriter import CSVWriter
 import time
 import numpy as np
 import rospy

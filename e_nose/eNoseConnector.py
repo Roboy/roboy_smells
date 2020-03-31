@@ -7,14 +7,13 @@ import serial
 import serial.tools.list_ports
 import sys
 
+
 class eNoseConnector:
     """ Connects to an eNose on the given port with the given baudrate.
         Parses the input in a new thread and updates its values accordingly.
         After each full received frame, the onUpdate is triggered.
         
         Use onUpdate like this: connector.onUpdate += <callbackMethod>"""
-    
-    
 
     def __init__(self, port: str = None, baudrate: int = 115200, channels: int = 64):
 
@@ -23,9 +22,9 @@ class eNoseConnector:
         self.sensorValues = [0.0] * channels
         self.channels = channels
 
-        #self._readerThread = Thread(target=self._readLoop, daemon=True)
-        #self._readerThreadRun = False
-        port = '/dev/ttyUSB0'
+        # self._readerThread = Thread(target=self._readLoop, daemon=True)
+        # self._readerThreadRun = False
+        # port = '/dev/ttyUSB0'
         if port is None:
             port = self.find_port()
 
@@ -36,24 +35,24 @@ class eNoseConnector:
             stopbits=serial.STOPBITS_ONE,
             bytesize=serial.EIGHTBITS,
             timeout=10)
-        #self._readerThreadRun = True
-        #self._readerThread.start()
-        print("Reading data startet")
-    
+        # self._readerThreadRun = True
+        # self._readerThread.start()
+        print("Reading data started")
+
     def __del__(self):
         print('Closing...')
         self.finished = True
-        #if self._readerThreadRun:
+        # if self._readerThreadRun:
         #    self._readerThreadRun = False
         #    self._readerThread.join()
         try:
             self.ser.close()
         except Exception:
             pass
-            
+
     def readLoop(self):
         print('Read Loop started')
-        while self.finished==False:
+        while not self.finished:
             try:
                 line = self.ser.readline()
                 # line looks like: count=___,var1=____._,var2=____._,....
@@ -65,10 +64,10 @@ class eNoseConnector:
                     print("received data for %i sensors (actually %i)" % (self.channels, len(self.sensorValues)))
                     self.onUpdate()
                 else:
-                    print('line: ',line)    
+                    print('line: ', line)
             except KeyboardInterrupt:
                 print('Interrupted, closing...')
-                self.finished=True
+                self.finished = True
             except:
                 print('Exception raised')
 
@@ -76,6 +75,7 @@ class eNoseConnector:
 
     @staticmethod
     def find_port():
+        """ Searches all serial ports for a connected eNose and returns the port if found, None otherwise"""
         ports = list(serial.tools.list_ports.comports())
         port = None
         for p in ports:
@@ -96,7 +96,10 @@ class eNoseConnector:
 if __name__ == '__main__':
     connector = eNoseConnector()
     connector.readLoop()
+
+
     def onUpdate():
-        print('sensor values: ',connector.sensorValues)
+        print('sensor values: ', connector.sensorValues)
+
+
     connector.onUpdate += onUpdate
-    
