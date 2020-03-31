@@ -33,9 +33,13 @@ class OnlineReader:
         self.log_lowpass_buffer: np.ndarray = np.empty((max_history_length, 64))
         """ log_lowpass data buffer that contains empty rows for all data that might come in one day """
         self.current_length: int = 0
-        self.invoke_callback: EventHook = EventHook()
-        self.invoke_at = 99999999999
         """ current length of the data buffer """
+        self.invoke_callback: EventHook = EventHook()
+        """ Callback that gets invoked when invoke_at is reached;
+            Add Callback by using reader.invoke_callback += function
+        """
+        self.invoke_at = 99999999999
+        """ Sample-count at which the invoke_callback will be triggered """
         self.log_lowpass_current = None
         self.max_history_length: int = max_history_length
         self.standardization: StandardizationType = standardization
@@ -71,11 +75,11 @@ class OnlineReader:
         #    self.log_lowpass = np.delete(self.log_lowpass, range(remove))
 
     def set_trigger_in(self, in_n: int = 50):
-        """ Sets a trigger to call the given callback function in in_n steps """
+        """ Sets a trigger to call the callback function given in invoke_callback in in_n steps """
         self.set_trigger_at(self.current_length + in_n)
 
     def set_trigger_at(self, at: int = 50):
-        """ Sets a trigger to call the given callback function at the given sample-count """
+        """ Sets a trigger to call the callback function given in invoke_callback at the given sample-count """
         self.invoke_at = at
 
     def get_since_n_as_measurement(self, n):
@@ -83,7 +87,8 @@ class OnlineReader:
 
     def get_last_n_as_measurement(self, n: int = 300) -> Measurement:
         """
-        Returns a measurement object for the last n data samples with the reference set to the lowpass-filter of the
+        Returns a measurement object for the last n data samples.
+        The reference measurement is set depending on the configured standardization type
         beginning of the series
         :param n:
         :return:
@@ -154,6 +159,8 @@ class FileAsOnlineReader:
         return self.data_at_index(pos)['label']
 
     def get_last_n_as_measurement(self, n: int = 300) -> Measurement:
+        """ Returns a Measurement object for the last n samples
+        """
         return self.reader.get_last_n_as_measurement(n)
 
     def get_all_measurements_every(self, n: int, m: int = -1, initial_offset: int = 10, add_labels: bool = True) -> List[Measurement]:
