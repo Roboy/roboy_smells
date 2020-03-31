@@ -1,10 +1,10 @@
 import time
 from datetime import datetime
 from datetime import timedelta
-from test_equiment.Classes.ServoConnector import ServoConnecor
-from test_equiment.Classes.TimeOverCalculator import TimeCalculator
-from test_equiment.Classes.BMEConnector import BMEConnector
-from test_equiment.Classes.eNoseConnector import eNoseConnector
+from test_equipment.Classes.ServoConnector import ServoConnecor
+from test_equipment.Classes.TimeOverCalculator import TimeCalculator
+from test_equipment.Classes.BMEConnector import BMEConnector
+from test_equipment.Classes.eNoseConnector import eNoseConnector
 from ROS.e_nose_raw_publisher.msg import e_nose_raw
 from random import choices
 

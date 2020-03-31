@@ -3,7 +3,7 @@
 import time
 import rospy
 from ROS.e_nose_raw_publisher.msg import e_nose_raw
-from test_equiment.Classes.eNoseConnector import eNoseConnector
+from test_equipment.Classes.eNoseConnector import eNoseConnector
 
 
 class eNoseRawNode:
