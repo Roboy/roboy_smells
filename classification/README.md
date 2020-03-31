@@ -13,7 +13,7 @@ simple blabla
 ### 2. 1dCNN
 The 1dCNN used here is based on the WaveNet architecture originally designed to work with audio signals [1]. The network - by design - has a lot of parameters even when we tried to simplify it, it still has >100.000 parameters which was too large a network to train with the little amount of data we have. This is why we ultimately switched to using our RNN and SmelLSTM approaches.
 When prototyping the idea for the 1dCNN we tried two different loss function that provided similar results. 
-Triplet Loss: The idea behind the triplet loss is to have an anchor datapoint (measurement in our case), a different positive sample from the same class and a negative sample from another class. The network then learns that the anchor and the positive sample should be close together in the latent space and the anchor and the negative sample far away.
+Triplet Loss: The idea behind the triplet loss is to have an anchor datapoint (measurement in our case), a different positive sample from the same class and a negative sample from another class. The network then learns that the anchor and the positive sample should be close together in the latent space and the anchor and the negative sample far away. [2]
 We wanted to try this as it would also directly provide a nice visual representation since we can show the resulting latent space in 2 or 3 dimensions using PCA.
 
 The version of the CNN with the triplet loss can be trained by using the train_cnn1d.py file. The tune configuration can be changed as needed for hyperparameter tuning.
@@ -35,4 +35,5 @@ For training the neural networks the ray.tune library was used for automated tra
 ray.tune automatically generates tensorboard files that can be viewed by launching tensorboard with the respective folder.
 
 [1] [WaveNet: A Generative Model for Raw Audio](https://arxiv.org/abs/1609.03499)
+
 [2] [Triplet Loss](https://en.wikipedia.org/wiki/Triplet_loss)
