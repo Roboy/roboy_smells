@@ -32,7 +32,7 @@ def butter_lowpass_filter(data: np.ndarray, cutoff: float, fs: float, order: int
 def low_pass_mean_std_measurement(measurements: List[Measurement],
                                   sample_rate: float=0.5,
                                   cutoff_freq: float=0.02,
-                                  order: int=2):
+                                  order: int=2) -> list:
     """
     This method filters the data for each measurement using a low pass filter and then normalizes the data with
     mean and standard deviation.
@@ -138,7 +138,6 @@ def train_test_split(measurements: np.ndarray, split: float = 0.8) -> (np.ndarra
 
         num_samples = indices_label.size
         if i == 0:
-            #print(int(split*num_samples))
             measurements_train = measurements[indices_label][:int(split*num_samples)]
             measurements_test = measurements[indices_label][int(split*num_samples):]
         else:
@@ -150,7 +149,14 @@ def train_test_split(measurements: np.ndarray, split: float = 0.8) -> (np.ndarra
 
     return measurements_train, measurements_test
 
-def shuffle(dataset_one, dataset_two=None):
+def shuffle(dataset_one: np.ndarray, dataset_two: np.ndarray = None) -> np.ndarray:
+    """
+    Function to shuffle one or respectively two datasets.
+
+    :param dataset_one:                 Dataset array to be shuffled.
+    :param dataset_two:                 Second dataset to be shuffled if defined.
+    :return:                            Shuffled datasets.
+    """
     np.random.shuffle(dataset_one)
     if dataset_two is not None:
         np.random.shuffle(dataset_two)
@@ -158,7 +164,29 @@ def shuffle(dataset_one, dataset_two=None):
     else:
         return dataset_one
 
-def get_batched_data(measurements, classes_dict=None, masking_value=100., data_type=DataType.HIGH_PASS, batch_size=4, sequence_length=4, dimension=64, return_sequences=True):
+def get_batched_data(measurements: list, classes_dict: dict = None, masking_value: float = 100., data_type: DataType = DataType.HIGH_PASS,
+                     batch_size: int = 64,
+                     sequence_length: int = 45,
+                     dimension: int = 62,
+                     return_sequences: bool = True) -> (np.ndarray, np.ndarray, list):
+    """
+    This function loads the data and labels as batches for training a stateful recurrent model. Therefore a certain ordering
+    of the data is required. For further information we refer to the stateful training tutorial of the tf.keras library.
+
+    :param measurements:                List of Measurement objects from which data will be obtained.
+    :param classes_dict:                Classes dictionary.
+    :param masking_value:               Masking value used to pad sequences. Data points with this value will ignored by network.
+    :param data_type:                   Type of data preprocessing.
+    :param batch_size:                  Batch size.
+    :param sequence_length:             Length of data sequence.
+    :param dimension:                   Number of dimensions of data. Should be equal to the least common number of
+                                        correctly working channels for the given measurements.
+    :param return_sequences:            If set to True, batched labels will be of shape (batch_size, sequence_length, 1),
+                                        otherwise (batch_size, 1)
+    :return:                            Batched data array of shape (Number of batches, batch_size, sequence_length, dimension),
+                                        batched label array of shape (Number of batches, batch_size, (sequence_length,) 1),
+                                        list of batch indices where sequences start and therefore state resets should be performed.
+    """
     if classes_dict == None:
         classes_list = ['acetone', 'isopropanol', 'orange_juice', 'pinot_noir', 'raisin', 'wodka']
         classes_dict = {}
@@ -236,7 +264,26 @@ def get_batched_data(measurements, classes_dict=None, masking_value=100., data_t
 
     return batches_data_done, batches_labels_done, starting_indices
 
-def get_data_stateless(measurements, dimension=35, return_sequences=True, augment=False, sequence_length=50, masking_value=100., batch_size=64, classes_dict=None, data_type=DataType.HIGH_PASS):
+def get_data_stateless(measurements: list, dimension: int = 62, return_sequences: bool = True, sequence_length: int = 45,
+                       masking_value: float = 100.,
+                       batch_size: int = 64,
+                       classes_dict: dict = None,
+                       data_type: DataType = DataType.HIGH_PASS) -> tf.data.Dataset:
+    """
+    This function loads the data and labels as batches for training a stateless recurrent model.
+
+    :param measurements:                List of Measurement objects from which data will be obtained.
+    :param dimension:                   Number of dimensions of data. Should be equal to the least common number of
+                                        correctly working channels for the given measurements.
+    :param return_sequences:            If set to True, label batches will be of shape (batch_size, sequence_length, 1),
+                                        otherwise (batch_size, 1).
+    :param sequence_length:             Length of data sequence.
+    :param masking_value:               Masking value used to pad sequences. Data points with this value will ignored by network.
+    :param batch_size:                  Batch size.
+    :param classes_dict:                Classes dictionary.
+    :param data_type:                   Type of data preprocessing.
+    :return:                            tf.data.Dataset containing data and label batches.
+    """
     if classes_dict == None:
         classes_list = ['acetone', 'isopropanol', 'orange_juice', 'pinot_noir', 'raisin', 'wodka']
         classes_dict = {}
@@ -266,7 +313,28 @@ def get_data_stateless(measurements, dimension=35, return_sequences=True, augmen
 
     return tf.data.Dataset.from_tensor_slices((tf.constant(full_data), tf.constant(full_labels)))
 
-def get_data_knn(measurements, dimension=35, return_sequences=True, augment=False, sequence_length=50, masking_value=100., batch_size=1, classes_dict=None, data_type=DataType.HIGH_PASS):
+def get_data_knn(measurements: list, dimension: int = 62, return_sequences: bool = True, sequence_length: int = 45,
+                 masking_value: float = 100.,
+                 batch_size: int = 1,
+                 classes_dict: dict = None,
+                 data_type: DataType = DataType.HIGH_PASS) -> (np.ndarray, np.ndarray):
+    """
+    This function loads data and labels from a list of measurements for kNN and naive Bayes classifier.
+    For this the sub samples of the data sequence after a certain time specified by sequence length are taken.
+
+    :param measurements:                List of Measurement objects from which data will be obtained
+    :param dimension:                   Number of dimensions of data. Should be equal to the least common number of
+                                        correctly working channels for the given measurements.
+    :param return_sequences:            If set to True, label batches will be of shape (Number of samples, sequence_length, 1),
+                                        otherwise (Number of samples, 1).
+    :param sequence_length:             The data points at sequence_length will be taken.
+    :param masking_value:               List of Measurement objects from which data will be obtained.
+    :param batch_size:                  Batch size.
+    :param classes_dict:                Classes dictionary.
+    :param data_type:                   Type of data preprocessing.
+    :return:                            Data array of shape (Number of samples, sequence_length, dimension)
+                                        labels array of shape (Number of samples, (sequence_length,) 1)
+    """
     if classes_dict == None:
         classes_list = ['acetone', 'isopropanol', 'orange_juice', 'pinot_noir', 'raisin', 'wodka']
         classes_dict = {}

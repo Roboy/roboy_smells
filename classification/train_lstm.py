@@ -2,73 +2,70 @@ import os
 import argparse
 import ray
 from ray import tune
-
 import numpy as np
-from classification.data_loading import get_measurements_from_dir, train_test_split, shuffle, get_batched_data, get_measurements_train_test_from_dir, get_data_stateless
-from classification.lstm_model import make_model, make_model_deeper
-from classification.util import get_class, get_classes_list, get_classes_dict, hot_fix_label_issue
 
+from classification.data_loading import shuffle, get_batched_data, get_measurements_train_test_from_dir, get_data_stateless
+from classification.lstm_model import SmelLSTM
+from classification.util import get_classes_list, get_classes_dict
 from e_nose.measurements import DataType
 
-# STUFF
-parent_path = os.getcwd()
+####################
+# TEST SETUP
+####################
 parser = argparse.ArgumentParser()
 parser.add_argument(
     "--smoke-test", action="store_true", help="Finish quickly for testing")
 args, _ = parser.parse_known_args()
 gpus = []
 
-dir_train_max = '../data_train'
-dir_val_max = '../data_test'
+####################
+# LOAD MEASUREMENTS
+####################
+current_path = os.getcwd()
+dir_train = '../data_train' # specify this
+dir_val = '../data_test' # specify this
+measurements_in_train, measurements_in_val, num_correct_channels = get_measurements_train_test_from_dir(os.path.join(current_path, dir_train), os.path.join(current_path, dir_val))
 
-# LOAD FROM FILES
-#measurements = get_measurements_from_dir(os.path.join(parent_path, '../data'))
-measurements_in_train, measurements_in_test, num_correct_channels = get_measurements_train_test_from_dir(os.path.join(parent_path, dir_train_max), os.path.join(parent_path, dir_val_max))
-print('number of correct_channels:', num_correct_channels)
+class RecurrentModelTrainable(tune.Trainable):
+    """
+    This class implements the automated training and testing of recurrent neural network models with hyperparameter search.
+    For further information about the ray.tune.Trainable class and its hyperparameter search we refer to the documentation of the ray library.
+    """
+    def _setup(self, config: dict):
+        """
+        Sets up everything needed for training and hyperparameter search.
 
-measurements_in_train = hot_fix_label_issue(measurements_in_train)
-measurements_in_test = hot_fix_label_issue(measurements_in_test)
-
-print("measurements_in_train", len(measurements_in_train))
-print("measurements_in_test", len(measurements_in_test))
-
-class LSTMTrainable(tune.Trainable):
-    def _setup(self, config):
+        :param config:              Configuration that specifies the hyperparameter search space.
+        """
         import tensorflow as tf
 
         ####################
         # GENERAL CONFIG
         ####################
-        # INPUT SHAPE
+        # INPUT DATA
         self.batch_size = config["batch_size"]
-        self.sequence_length = 50
+        self.sequence_length = 45
         self.dim = num_correct_channels
         self.input_shape = (self.batch_size, self.sequence_length, self.dim)
 
         # OTHER STUFF
         self.masking_value = 100.
-        #self.classes_list = get_classes_list(measurements)
         self.classes_list = get_classes_list(measurements_in_train)
         self.classes_dict = get_classes_dict(self.classes_list)
         self.num_classes = self.classes_list.size
 
-        #self.return_sequences = config["return_sequences"]
-        self.return_sequences = True
+        self.return_sequences = config["return_sequences"]
 
-        #self.stateful = config["stateful"]
-        self.stateful = False
+        self.stateful = True
 
         self.use_lstm = config["use_lstm"]
-
-
 
 
         ####################
         # LOAD DATA
         ####################
-        #self.measurements_train, self.measurements_val = train_test_split(measurements)
         self.measurements_train = measurements_in_train
-        self.measurements_val = measurements_in_test
+        self.measurements_val = measurements_in_val
         self.num_measurements_train = len(measurements_in_train)
 
         if config["data_preprocessing"] is "full":
@@ -89,12 +86,11 @@ class LSTMTrainable(tune.Trainable):
         ####################
         # MODEL SETUP
         ####################
-
-
-        if config["dim_hidden"] == 1000:
-            self.model = make_model_deeper(input_shape=self.input_shape, num_classes=self.num_classes, masking_value=self.masking_value, return_sequences=self.return_sequences, stateful=self.stateful, LSTM=self.use_lstm)
+        if config["dim_hidden"] == 100:
+            model = SmelLSTM(input_shape=self.input_shape, dim_hidden=config["dim_hidden"], simple_model=False, num_classes=self.num_classes, masking_value=self.masking_value, return_sequences=self.return_sequences, stateful=self.stateful, LSTM=self.use_lstm)
         else:
-            self.model = make_model(input_shape=self.input_shape, dim_hidden=config["dim_hidden"], num_classes=self.num_classes, masking_value=self.masking_value, return_sequences=self.return_sequences, stateful=self.stateful)
+            model = SmelLSTM(input_shape=self.input_shape, dim_hidden=config["dim_hidden"], simple_model=True, num_classes=self.num_classes, masking_value=self.masking_value, return_sequences=self.return_sequences, stateful=self.stateful, LSTM=self.use_lstm)
+        self.model = model.model
         self.model.summary()
 
         ####################
@@ -103,7 +99,7 @@ class LSTMTrainable(tune.Trainable):
         self.optimizer = tf.keras.optimizers.Adam(lr=config["lr"])
 
         ####################
-        # LOSS DEFINITION
+        # LOSS AND ACCURACY
         ####################
         self.loss_object = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True, reduction=tf.keras.losses.Reduction.NONE)
         self.train_loss = tf.keras.metrics.Mean(name="train_loss")
@@ -114,13 +110,29 @@ class LSTMTrainable(tune.Trainable):
             name="val_accuracy")
 
         @tf.function
-        def compute_masked_loss(y_true, y_pred, mask):
+        def compute_masked_loss(y_true: tf.Tensor, y_pred: tf.Tensor, mask: tf.Tensor) -> tf.Tensor:
+            """
+            Computes masked loss that ignores entries containing padding values.
+
+            :param y_true:          Tensor contaning labels.
+            :param y_pred:          Tensor containing predictions.
+            :param mask:            Boolean tensor of shape (batch_size, sequence_length) that specifies values to be ignored.
+            :return:                Masked loss.
+            """
             loss = self.loss_object(y_true=y_true, y_pred=y_pred)
             masked_loss = tf.reduce_mean(tf.boolean_mask(loss, mask))
             return masked_loss
 
         @tf.function
-        def train_step(X, y, mask):
+        def train_step(X: tf.Tensor, y: tf.Tensor, mask: tf.Tensor):
+            """
+            Performs one train step on batch. Computes loss and accuracy and performs gradient update.
+
+            :param X:               Data tensor of shape (batch_size, sequence_length, dimensions).
+            :param y:               Label tensor of shape (batch_size, sequence_length, 1) if return_sequences = True or
+                                    (batch_size, 1) for return_sequences = False.
+            :param mask:            Boolean tensor of shape (batch_size, sequence_length) that specifies values to be ignored.
+            """
             with tf.GradientTape() as tape:
                 y_pred = self.model(X, training=True)
                 loss_value = compute_masked_loss(y_true=y, y_pred=y_pred, mask=mask)
@@ -128,14 +140,17 @@ class LSTMTrainable(tune.Trainable):
             self.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
             self.train_loss(loss_value)
             self.train_accuracy(y, y_pred, mask)
-            #print('class_dict: ', self.classes_dict)
-            #print('y_gt: ')
-            #print(y.numpy())
-            #print('y_pred: ')
-            #print(np.argmax(y_pred.numpy(), axis=-1))
 
         @tf.function
-        def val_step(X, y, mask):
+        def val_step(X: tf.Tensor, y: tf.Tensor, mask: tf.Tensor):
+            """
+            Performs one validation step on batch. Computes loss and accuracy.
+
+            :param X:               Data tensor of shape (batch_size, sequence_length, dimensions).
+            :param y:               Label tensor of shape (batch_size, sequence_length, 1) if return_sequences = True or
+                                    (batch_size, 1) for return_sequences = False.
+            :param mask:            Boolean tensor of shape (batch_size, sequence_length) that specifies values to be ignored.
+            """
             y_pred = self.model(X, training=False)
             loss_value = compute_masked_loss(y_true=y, y_pred=y_pred, mask=mask)
             self.val_loss(loss_value)
@@ -144,27 +159,42 @@ class LSTMTrainable(tune.Trainable):
         self.tf_train_step = train_step
         self.tf_val_step = val_step
 
-    def _save(self, tmp_checkpoint_dir):
+    def _save(self, tmp_checkpoint_dir: str) -> str:
+        """
+        Internal tune function to save model at checkpoint .
+
+        :param tmp_checkpoint_dir:  Checkpoint directory.
+        :return:                    Checkpoint directory.
+        """
         checkpoint_path = os.path.join(tmp_checkpoint_dir, "model_weights")
         self.model.save_weights(checkpoint_path, save_format="tf")
         return tmp_checkpoint_dir
 
-    def _restore(self, checkpoint):
+    def _restore(self, checkpoint: str):
+        """
+        Internal tune function to restore model from checkpoint.
+
+        :param checkpoint:          Checkpoint directory.
+        """
         checkpoint_path = os.path.join(checkpoint, "model_weights")
         self.model.load_weights(checkpoint_path)
 
-    def _train(self):
+    def _train(self) -> dict:
+        """
+        Internal tune train function. Called every epoch.
+
+        :return:                    Dictionary containing information about training progress.
+        """
         import tensorflow as tf
 
-        self.debugging_tool = 0
-
+        # Reset states of tracked losses and accuracies.
         self.train_loss.reset_states()
         self.val_loss.reset_states()
         self.train_accuracy.reset_states()
         self.val_accuracy.reset_states()
 
+        # Reload and shuffle data.
         if self.stateful:
-
             self.measurements_train, self.measurements_val = shuffle(self.measurements_train, self.measurements_val)
 
             data_train, labels_train, starting_indices_train = get_batched_data(self.measurements_train,
@@ -189,23 +219,26 @@ class LSTMTrainable(tune.Trainable):
             self.val_ds = tf.data.Dataset.from_tensor_slices((tf.constant(data_val), tf.constant(labels_val)))
 
         else:
-
             self.train_ds = self.tf_dataset_train.shuffle(buffer_size=self.num_measurements_train).batch(self.batch_size)
             self.val_ds = self.tf_dataset_val.shuffle(buffer_size=self.num_measurements_train).batch(self.batch_size)
 
+        # Training loop.
         for idx, (X, y) in enumerate(self.train_ds):
-
             if self.stateful:
+                # Perform state resets of recurrent model for stateful configuration.
                 if idx in starting_indices_train:
                     self.model.reset_states()
-                    #print('reset', idx)
+            # Compute mask.
             mask = self.model.layers[0](X)._keras_mask
             self.tf_train_step(X, y, mask)
 
+        # Validation loop.
         for idx, (X, y) in enumerate(self.val_ds):
             if self.stateful:
+                # Perform state resets of recurrent model for stateful configuration.
                 if idx in starting_indices_val:
                     self.model.reset_states()
+            # Compute mask.
             mask = self.model.layers[0](X)._keras_mask
             self.tf_val_step(X, y, mask)
 
@@ -215,27 +248,25 @@ class LSTMTrainable(tune.Trainable):
             "loss": self.train_loss.result().numpy(),
             "test_loss": self.val_loss.result().numpy(),
             "train_acc": self.train_accuracy.result().numpy(),
-            "test_acc": self.val_accuracy.result().numpy(),
-            #"classes_dict": self.classes_dict
+            "test_acc": self.val_accuracy.result().numpy()
         }
 
-
+####################
+# RUN RAY TUNE
+####################
 ray.init(num_cpus=6 if args.smoke_test else None)
 tune.run(
-    LSTMTrainable,
-    stop={"training_iteration": 5 if args.smoke_test else 400},
+    RecurrentModelTrainable,
+    stop={"training_iteration": 5 if args.smoke_test else 350},
     verbose=1,
-    name="lstm_roboy_friday_7",
+    name="smellstm_roboy",
     num_samples=8,
     checkpoint_freq=20,
     config={
         "lr": tune.sample_from(lambda spec: np.random.uniform(0.0001, 0.1)),
         "batch_size": tune.grid_search([64, 128]),
-        "dim_hidden": tune.grid_search([6, 12, 50]),
-        #"return_sequences": tune.grid_search([True]),
-        "dim_hidden": tune.grid_search([8, 10, 32, 64]),
-        #"return_sequences": tune.grid_search([True]),
+        "dim_hidden": tune.grid_search([6, 12]), # If dim_hidden = 100, the deeper model architecture will be used.
+        "return_sequences": tune.grid_search([True]),
         "data_preprocessing": tune.grid_search(["high_pass"]),
-        #"stateful": tune.grid_search([False]),
         "use_lstm": tune.grid_search([False, True])
     })
