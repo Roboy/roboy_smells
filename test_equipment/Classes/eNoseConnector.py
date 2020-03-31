@@ -16,7 +16,7 @@ class eNoseConnector:
 
         if port is None:
             port = self.find_port()
-
+        # connect to serial port via USB
         self.ser = serial.Serial(
             port=port,
             baudrate=baudrate,
@@ -35,6 +35,10 @@ class eNoseConnector:
             pass
 
     def detect(self):
+        """
+        listen to serical port and look if sensor date is comming
+        :return: sensor data as 64 value array
+        """
         try:
             line = self.ser.readline()
             # line looks like: count=___,var1=____._,var2=____._,....
@@ -57,6 +61,10 @@ class eNoseConnector:
 
     @staticmethod
     def find_port():
+        """
+        Find the usb port on which the eNose is connected to
+        :return: usb port as string
+        """
         ports = list(serial.tools.list_ports.comports())
         port = None
         for p in ports:
