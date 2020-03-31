@@ -4,4 +4,5 @@ This is the repository of the Roboy_Smells team that made Roboy smell as part of
 
 ### Authors
 
+- Daniel Schubert
 - Valentin Starlinger @vstarlinger
