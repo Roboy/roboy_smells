@@ -58,7 +58,7 @@ def low_pass_mean_std_measurement(measurements: List[Measurement],
         meas.data = ys
     return measurements
 
-def get_measurements_train_test_from_dir(train_dir: str = '../data', test_dir: str = '../data') -> (np.ndarray, np.ndarray, int):
+def get_measurements_train_test_from_dir(train_dir: str = '../data_train', test_dir: str = '../data_val') -> (np.ndarray, np.ndarray, int):
     """
     This method gets train and test data from the respective directories. It uses the correct channels found in
     the test file to guarantee that the models are not trained on less data than there is available in the test
@@ -100,7 +100,7 @@ def get_measurements_train_test_from_dir(train_dir: str = '../data', test_dir: s
 
     return np.array(measurements_train), np.array(measurements_test), np.count_nonzero(correct_channels)
 
-def get_measurements_from_dir(directory_name: str= '../data') -> np.ndarray:
+def get_measurements_from_dir(directory_name: str= '../data_train') -> np.ndarray:
     """
     This method returns the standarized measurements found in the data in the specified directory.
 

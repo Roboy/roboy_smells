@@ -23,7 +23,7 @@ gpus = []
 ####################
 current_path = os.getcwd()
 dir_train = '../data_train' # specify this
-dir_val = '../data_test' # specify this
+dir_val = '../data_val' # specify this
 measurements_in_train, measurements_in_val, num_correct_channels = get_measurements_train_test_from_dir(os.path.join(current_path, dir_train), os.path.join(current_path, dir_val))
 
 class RecurrentModelTrainable(tune.Trainable):
