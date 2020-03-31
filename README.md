@@ -7,3 +7,4 @@ This is the repository of the Roboy_Smells team that made Roboy smell as part of
 - Daniel Schubert
 - Valentin Starlinger @vstarlinger
 - Philip Hagemann @philip5
+- Maximilian Pittner @maxpit
