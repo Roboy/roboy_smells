@@ -14,11 +14,11 @@ Our best performing model architecture consists in a stateful LSTM layer followe
 ### 2. 1dCNN
 The 1dCNN used here is based on the WaveNet architecture originally designed to work with audio signals [2]. The network - by design - has a lot of parameters even when we tried to simplify it, it still has >100.000 parameters which was too large a network to train with the little amount of data we have. This is why we ultimately switched to using our RNN and SmelLSTM approaches.
 When prototyping the idea for the 1dCNN we tried two different loss function that provided similar results. 
-Triplet Loss: The idea behind the triplet loss is to have an anchor datapoint (measurement in our case), a different positive sample from the same class and a negative sample from another class. The network then learns that the anchor and the positive sample should be close together in the latent space and the anchor and the negative sample far away. [3]
+- Triplet Loss: The idea behind the triplet loss is to have an anchor datapoint (measurement in our case), a different positive sample from the same class and a negative sample from another class. The network then learns that the anchor and the positive sample should be close together in the latent space and the anchor and the negative sample far away. [3]
 We wanted to try this as it would also directly provide a nice visual representation since we can show the resulting latent space in 2 or 3 dimensions using PCA.
 
 The version of the CNN with the triplet loss can be trained by using the train_cnn1d.py file. The tune configuration can be changed as needed for hyperparameter tuning.
-Classic Categorical Cross Entropy: The second approach was to directly predict the classes using a cross entropy loss function. The CNN using this loss can be trained using the train_cnn1d_cel.py file.
+- Classic Categorical Cross Entropy: The second approach was to directly predict the classes using a cross entropy loss function. The CNN using this loss can be trained using the train_cnn1d_cel.py file.
 
 ### 3. Baysian Approach
 For the baysian approach, the saturated sensor values are assumed to be Gaussian distributed. During training mean and covariance matrix of a Gaussian are fit to the underlying data for each class. During inference a new datapoint the parameterized model is used to find the corresponding class with the highest probability. 
